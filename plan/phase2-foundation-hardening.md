@@ -74,12 +74,12 @@ flowchart LR
     style C fill:#f39c12,stroke:#d68910,color:#fff
     style D fill:#f39c12,stroke:#d68910,color:#fff
     style E fill:#27ae60,stroke:#1e8449,color:#fff
-```
+## Sprint 2 (Initiative A + D) — ✅ Complete
 
-| Sprint | Initiative | What Ships | Owner |
-|--------|-----------|------------|-------|
-| **Sprint 2** | A — CI/CD + GHCR | GitHub Actions for Guard, Discover, Gate. Build + test + push to GHCR. Manual deploy workflow. SSH key configured. | DevOps |
-| **Sprint 2** | D — Backup | `pg_dumpall` cron at 3 AM daily. 7-day local retention. rclone to OneDrive. | DevOps |
+| Step | Initiative | What Ships | Status |
+|------|-----------|------------|:------:|
+| 1 | A — CI/CD | GitHub Actions workflows for Guard, Discover, Gate. CI on push (compile + test + build + push to GHCR). Separate deploy workflow (`workflow_dispatch`). SSH deploy key. Auto-rollback on smoke test failure. | ✅ Done |
+| 2 | D — Backup | `pg_dumpall` cron at 3:00 AM daily. 7-day local retention. rclone → OneDrive. Weekly Docker volume backup (Sunday 4 AM, 4-week retention). | ✅ Done |
 | **Sprint 3** | B — Observability | Prometheus (:9090), Grafana (:3000), Loki (:3100). Scrape configs for all 3 services. Dashboards for JVM, request rate, error rate, latency. | DevOps |
 | **Sprint 3** | C — Alerting | Grafana alert rules. Discord webhook. Alerts for: service down, high error rate, high memory, disk space, Valkey down, Eureka empty. | DevOps |
 | **Sprint 3** | E — Uptime Kuma | Single container. Pings all `*.panomete.com` URLs every 30s. Status page. | DevOps |
@@ -239,12 +239,12 @@ scrape_configs:
 
 | ID | Action | Owner | Priority | Depends On |
 |----|--------|-------|----------|------------|
-| P2-001 | Update CI/CD docs: split deploy job to `workflow_dispatch` (manual approval) | PO → DevOps | 🔴 | — |
-| P2-002 | Create GitHub Actions CI workflows (guard, discover, gate) | DevOps | 🔴 | P2-001 |
-| P2-003 | Create GitHub Actions deploy workflows (`workflow_dispatch`) | DevOps | 🔴 | P2-002 |
-| P2-004 | Set up GHCR + SSH deploy key | DevOps | 🔴 | — |
-| P2-005 | Write backup script (`pg_dumpall` + rclone) | DevOps | 🟡 | — |
-| P2-006 | Configure cron (daily 3AM db, weekly volumes) | DevOps | 🟡 | P2-005 |
+| P2-001 | Update CI/CD docs: split deploy job to `workflow_dispatch` (manual approval) | DevOps | ✅ Done | — |
+| P2-002 | Create GitHub Actions CI workflows (guard, discover, gate) | DevOps | ✅ Done | P2-001 |
+| P2-003 | Create GitHub Actions deploy workflows (`workflow_dispatch`) | DevOps | ✅ Done | P2-002 |
+| P2-004 | Set up GHCR + SSH deploy key | DevOps | ✅ Done | — |
+| P2-005 | Write backup script (`pg_dumpall` + rclone) | DevOps | ✅ Done | — |
+| P2-006 | Configure cron (daily 3AM db, weekly volumes) | DevOps | ✅ Done | P2-005 |
 | P2-007 | Deploy Prometheus + scrape config | DevOps | 🔴 | P2-004 |
 | P2-008 | Deploy Grafana + import dashboards | DevOps | 🔴 | P2-007 |
 | P2-009 | Deploy Loki + Promtail | DevOps | 🔴 | P2-007 |
@@ -260,14 +260,14 @@ scrape_configs:
 
 Phase 2 is complete when ALL of the following are true:
 
-- [ ] CI/CD pipeline builds, tests, and pushes images to GHCR for all 3 foundation services
-- [ ] Deploy requires manual approval (not auto-deploy)
-- [ ] Smoke tests run after deploy and auto-rollback on failure
+- [x] CI/CD pipeline builds, tests, and pushes images to GHCR for all 3 foundation services
+- [x] Deploy requires manual approval (not auto-deploy)
+- [x] Smoke tests run after deploy and auto-rollback on failure
 - [ ] Prometheus scrapes metrics from all 3 foundation services
 - [ ] Grafana dashboards show JVM health, request rate, error rate, latency
 - [ ] Loki aggregates logs from all containers
 - [ ] Grafana alerts send to Discord webhook when triggered
-- [ ] Backup cron runs daily at 3 AM, pushes to OneDrive
+- [x] Backup cron runs daily at 3 AM, pushes to OneDrive
 - [ ] Uptime Kuma monitors all `*.panomete.com` URLs
 - [ ] All new services deployed through CI/CD (not manual scp)
 
