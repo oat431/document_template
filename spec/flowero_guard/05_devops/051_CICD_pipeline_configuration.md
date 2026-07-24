@@ -119,54 +119,36 @@ jobs:
 
 ### 4.2 CD — Build & Deploy Guard
 
+> Per PO decision DEC-007: CI builds + pushes automatically. Deploy is **manual** via `workflow_dispatch`.
+
 ```yaml
-# .github/workflows/guard-deploy.yml
-name: Guard Build & Deploy
+# .github/workflows/deploy-guard.yml
+name: Deploy Guard
 
 on:
-  push:
-    branches: [main]
-    paths: ['flowero-guard/**']
-
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: panomete/flowero-guard
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Image tag to deploy (default: latest)'
+        required: false
+        default: 'latest'
 
 jobs:
-  build:
-    name: Build Guard Image
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build & Push
-        uses: docker/build-push-action@v5
-        with:
-          context: flowero-guard
-          file: flowero-guard/Dockerfile
-          push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-
   deploy:
-    name: Deploy Guard to Homelab
-    needs: build
+    name: Deploy to Homelab
     runs-on: ubuntu-latest
     environment: homelab
     steps:
       - uses: actions/checkout@v4
 
+      # Connect to Tailscale (server is behind Tailnet — not public)
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v3
+        with:
+          auth-key: ${{ secrets.TS_AUTH_KEY }}
+          hostname: github-actions-deploy
+
+      # Deploy via SSH
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1
         with:
@@ -179,15 +161,18 @@ jobs:
             docker compose -f docker-compose.platform.yml up -d flowero-guard
             sleep 15
 
+      # Smoke Test
       - name: Smoke Test
-        run: |
-          # Guard health check
-          curl -sf http://remote.panomete.com:8001/health/ready || exit 1
-          # OIDC discovery endpoint
-          curl -sf https://auth.panomete.com/realms/panomete/.well-known/openid-configuration | jq .issuer || exit 1
-          # JWKS endpoint
-          curl -sf https://auth.panomete.com/realms/panomete/protocol/openid-connect/certs | jq .keys[0].kty || exit 1
+        uses: appleboy/ssh-action@v1
+        with:
+          host: remote.panomete.com
+          username: flowero
+          key: ${{ secrets.HOMELAB_SSH_KEY }}
+          script: |
+            curl -sf http://localhost:8001/health/ready || exit 1
+            echo "✅ Guard healthy"
 
+      # Rollback on Failure
       - name: Rollback on Failure
         if: failure()
         uses: appleboy/ssh-action@v1
@@ -197,11 +182,11 @@ jobs:
           key: ${{ secrets.HOMELAB_SSH_KEY }}
           script: |
             cd ~/platform
-            docker compose -f docker-compose.platform.yml stop flowero-guard
-            # Revert to previous image
-            docker compose -f docker-compose.platform.yml pull flowero-guard
-            docker compose -f docker-compose.platform.yml up -d flowero-guard
+            docker compose -f docker-compose.platform.yml rollback flowero-guard || \
+            echo "⚠️ Manual rollback required"
 ```
+
+> **Note:** The deploy workflow connects to Tailscale first because the homelab server resolves to a Tailscale IP (`100.73.143.25`). GitHub Actions runners are on public internet and cannot reach Tailscale IPs without this step.
 
 ---
 

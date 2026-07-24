@@ -112,64 +112,36 @@ jobs:
 
 ### 4.2 CD — Build & Deploy Gate
 
+> Per PO decision DEC-007: CI builds + pushes automatically. Deploy is **manual** via `workflow_dispatch`.
+
 ```yaml
-# .github/workflows/gate-deploy.yml
-name: Gate Build & Deploy
+# .github/workflows/deploy-gate.yml
+name: Deploy Gate
 
 on:
-  push:
-    branches: [main]
-    paths: ['flowero-gate/**']
-
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: panomete/flowero-gate
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Image tag to deploy (default: latest)'
+        required: false
+        default: 'latest'
 
 jobs:
-  build:
-    name: Build Docker Image
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up JDK 25
-        uses: actions/setup-java@v4
-        with:
-          java-version: '25'
-          distribution: 'temurin'
-          cache: gradle
-
-      - name: Build JAR
-        run: cd flowero-gate && ./gradlew bootJar -q
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build & Push
-        uses: docker/build-push-action@v5
-        with:
-          context: flowero-gate
-          file: flowero-gate/Dockerfile
-          push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
-
   deploy:
-    name: Deploy Gate to Homelab
-    needs: build
+    name: Deploy to Homelab
     runs-on: ubuntu-latest
     environment: homelab
     steps:
       - uses: actions/checkout@v4
 
+      # Connect to Tailscale (server is behind Tailnet)
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v3
+        with:
+          auth-key: ${{ secrets.TS_AUTH_KEY }}
+          hostname: github-actions-deploy
+
+      # Deploy via SSH
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1
         with:
@@ -182,18 +154,21 @@ jobs:
             docker compose -f docker-compose.platform.yml up -d flowero-gate
             sleep 10
 
+      # Smoke Test
       - name: Smoke Test
-        run: |
-          # Gate health check
-          curl -sf http://remote.panomete.com:8000/actuator/health || exit 1
-          # Gate should reject unauthenticated requests
-          CODE=$(curl -sf -o /dev/null -w '%{http_code}' https://api.panomete.com/api/blog/posts)
-          if [ "$CODE" != "401" ]; then
-            echo "❌ Expected 401 for no-token request, got $CODE"
-            exit 1
-          fi
-          echo "✅ Gate correctly rejects unauthenticated requests"
+        uses: appleboy/ssh-action@v1
+        with:
+          host: remote.panomete.com
+          username: flowero
+          key: ${{ secrets.HOMELAB_SSH_KEY }}
+          script: |
+            curl -sf http://localhost:8000/actuator/health || exit 1
+            # Verify 401 rejection (auth active)
+            CODE=$(curl -sf -o /dev/null -w '%{http_code}' https://api.panomete.com/api/blog/posts)
+            [ "$CODE" = "401" ] || (echo "❌ Expected 401" && exit 1)
+            echo "✅ Gate healthy + auth active"
 
+      # Rollback on Failure
       - name: Rollback on Failure
         if: failure()
         uses: appleboy/ssh-action@v1
@@ -203,9 +178,11 @@ jobs:
           key: ${{ secrets.HOMELAB_SSH_KEY }}
           script: |
             cd ~/platform
-            docker compose -f docker-compose.platform.yml stop flowero-gate
-            docker compose -f docker-compose.platform.yml up -d flowero-gate --pull never
+            docker compose -f docker-compose.platform.yml rollback flowero-gate || \
+            echo "⚠️ Manual rollback required"
 ```
+
+> **Note:** The deploy workflow connects to Tailscale first because the homelab server resolves to a Tailscale IP (`100.73.143.25`). GitHub Actions runners are on public internet and cannot reach Tailscale IPs without this step.
 
 ---
 
