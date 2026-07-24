@@ -2,7 +2,7 @@
 
 > Production-grade microservice platform for a personal homelab. Built to showcase platform engineering and software architecture skills.
 >
-> **Phase 1:** ✅ Foundation deployed | **Phase 2:** 🛠️ Foundation Hardening | **Domain:** `*.panomete.com`
+> **Phase 1:** ✅ Foundation deployed | **Phase 2:** ✅ Foundation Hardening | **Domain:** `*.panomete.com`
 
 ---
 
@@ -27,17 +27,17 @@
 | Cook Book | Shy Ardilla | 🐿️ Squirrel | TypeScript | 🌏 | 8006 | 3006 | `recipe.panomete.com` | ❌ | ❌ |
 | Hora | White Jelen | 🦌 Deer | TypeScript | 🌏 | 8007 | 3007 | `hora.panomete.com` | ❌ | ❌ |
 
-### Phase 2 — Foundation Hardening (🛠️ In Progress)
+### Phase 2 — Foundation Hardening (✅ Deployed)
 
-| Focus           | Technology                     | Port | Domain                 |   Status   |
-| --------------- | ------------------------------ | :--: | ---------------------- | :--------: |
-| CI/CD           | GitHub Actions + GHCR          |  —   | —                      | 📋 Planned |
-| Metrics         | Prometheus                     | 9090 | `metrics.panomete.com` | 📋 Planned |
-| Dashboards      | Grafana                        | 3000 | `grafana.panomete.com` | 📋 Planned |
-| Log Aggregation | Loki + Promtail                | 3100 | — (internal)           | 📋 Planned |
-| Alerting        | Grafana → Discord              |  —   | —                      | 📋 Planned |
-| Uptime Monitor  | Uptime Kuma                    | 3001 | `status.panomete.com`  | 📋 Planned |
-| Backups         | pg_dumpall + rclone → OneDrive |  —   | —                      | 📋 Planned |
+| Focus           | Technology                     | Port | Domain                 | Status |
+| --------------- | ------------------------------ | :--: | ---------------------- | :----: |
+| Metrics         | Prometheus                     |  —   | — (internal)           |   ✅    |
+| Dashboards      | Grafana                        |  —   | `grafana.panomete.com` |   ✅    |
+| Log Aggregation | Loki + Promtail                |  —   | — (internal)           |   ✅    |
+| Uptime Monitor  | Uptime Kuma                    |  —   | `status.panomete.com`  |   ⚠️   |
+| CI/CD           | GitHub Actions + GHCR          |  —   | —                      |   ✅    |
+| Alerting        | Uptime Kuma → Discord          |  —   | —                      |   ✅    |
+| Backups         | pg_dumpall + rclone → OneDrive |  —   | —                      |   ⚠️   |
 
 ---
 
@@ -47,7 +47,7 @@
 |-----------|:------:|-------|
 | Docker + Compose | ✅ | All services run as containers |
 | Cloudflare Tunnel | ✅ | TLS termination + external ingress |
-| Nginx Reverse Proxy | ✅ | Subdomain-based routing |
+| Nginx Reverse Proxy | ✅ | Subdomain-based routing (10 sites) |
 | PostgreSQL 18 | ✅ | Shared — Guard + future business services |
 | Valkey 9 | ✅ | Shared — Gate rate limiting |
 | MongoDB 8 | ✅ | Available for document-oriented services |
@@ -71,10 +71,11 @@ flowchart LR
         Gate["Gate :8000<br>api.panomete.com"]
     end
 
-    subgraph Phase2["Phase 2 🛠️"]
-        Prom["Prometheus :9090"]
-        Grafana["Grafana :3000"]
-        Kuma["Uptime Kuma :3001"]
+    subgraph Phase2["Phase 2 ✅"]
+        Prom["Prometheus"]
+        Grafana["Grafana<br>grafana.panomete.com"]
+        Loki["Loki + Promtail"]
+        Kuma["Uptime Kuma<br>status.panomete.com"]
     end
 
     subgraph Business["Business 📋 Phase 3+"]
@@ -84,7 +85,6 @@ flowchart LR
     Nginx --> Guard
     Nginx --> Discover
     Nginx --> Gate
-    Nginx --> Prom
     Nginx --> Grafana
     Nginx --> Kuma
     Gate --> Services
@@ -94,7 +94,7 @@ flowchart LR
 
     style Edge fill:#009639,stroke:#007a2e,color:#fff
     style Foundation fill:#2c3e50,stroke:#34495e,color:#ecf0f1
-    style Phase2 fill:#6c3483,stroke:#5b2c6f,color:#ecf0f1
+    style Phase2 fill:#27ae60,stroke:#1e8449,color:#ecf0f1
     style Business fill:#1a1a2e,stroke:#333,color:#aaa
 ```
 
