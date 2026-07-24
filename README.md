@@ -29,15 +29,15 @@
 
 ### Phase 2 — Foundation Hardening (🛠️ In Progress)
 
-| Focus | Technology | Port | Domain | Status |
-|-------|-----------|:----:|--------|:------:|
-| CI/CD | GitHub Actions + GHCR | — | — | 📋 Planned |
-| Metrics | Prometheus | 9090 | `metrics.panomete.com` | 📋 Planned |
-| Dashboards | Grafana | 3000 | `grafana.panomete.com` | 📋 Planned |
-| Log Aggregation | Loki + Promtail | 3100 | — (internal) | 📋 Planned |
-| Alerting | Grafana → Discord | — | — | 📋 Planned |
-| Uptime Monitor | Uptime Kuma | 3001 | `status.panomete.com` | 📋 Planned |
-| Backups | pg_dumpall + rclone → OneDrive | — | — | 📋 Planned |
+| Focus           | Technology                     | Port | Domain                 |   Status   |
+| --------------- | ------------------------------ | :--: | ---------------------- | :--------: |
+| CI/CD           | GitHub Actions + GHCR          |  —   | —                      | 📋 Planned |
+| Metrics         | Prometheus                     | 9090 | `metrics.panomete.com` | 📋 Planned |
+| Dashboards      | Grafana                        | 3000 | `grafana.panomete.com` | 📋 Planned |
+| Log Aggregation | Loki + Promtail                | 3100 | — (internal)           | 📋 Planned |
+| Alerting        | Grafana → Discord              |  —   | —                      | 📋 Planned |
+| Uptime Monitor  | Uptime Kuma                    | 3001 | `status.panomete.com`  | 📋 Planned |
+| Backups         | pg_dumpall + rclone → OneDrive |  —   | —                      | 📋 Planned |
 
 ---
 

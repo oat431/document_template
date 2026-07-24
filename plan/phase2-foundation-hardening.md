@@ -80,9 +80,9 @@ flowchart LR
 |------|-----------|------------|:------:|
 | 1 | A — CI/CD | GitHub Actions workflows for Guard, Discover, Gate. CI on push (compile + test + build + push to GHCR). Separate deploy workflow (`workflow_dispatch`). SSH deploy key. Auto-rollback on smoke test failure. | ✅ Done |
 | 2 | D — Backup | `pg_dumpall` cron at 3:00 AM daily. 7-day local retention. rclone → OneDrive. Weekly Docker volume backup (Sunday 4 AM, 4-week retention). | ✅ Done |
-| **Sprint 3** | B — Observability | Prometheus (:9090), Grafana (:3000), Loki (:3100). Scrape configs for all 3 services. Dashboards for JVM, request rate, error rate, latency. | DevOps |
-| **Sprint 3** | C — Alerting | Grafana alert rules. Discord webhook. Alerts for: service down, high error rate, high memory, disk space, Valkey down, Eureka empty. | DevOps |
-| **Sprint 3** | E — Uptime Kuma | Single container. Pings all `*.panomete.com` URLs every 30s. Status page. | DevOps |
+| **Sprint 3** | B — Observability | Prometheus (:9090), Grafana (:3000), Loki (:3100). Scrape configs for all 3 services. Dashboards for JVM, request rate, error rate, latency. | ✅ Done |
+| **Sprint 3** | C — Alerting | Grafana alert rules. Discord webhook. Alerts for: service down, high error rate, high memory, disk space, Valkey down, Eureka empty. | ✅ Done |
+| **Sprint 3** | E — Uptime Kuma | Single container. Pings all `*.panomete.com` URLs every 30s. Status page. | ✅ Done |
 
 ---
 
@@ -245,14 +245,14 @@ scrape_configs:
 | P2-004 | Set up GHCR + SSH deploy key | DevOps | ✅ Done | — |
 | P2-005 | Write backup script (`pg_dumpall` + rclone) | DevOps | ✅ Done | — |
 | P2-006 | Configure cron (daily 3AM db, weekly volumes) | DevOps | ✅ Done | P2-005 |
-| P2-007 | Deploy Prometheus + scrape config | DevOps | 🔴 | P2-004 |
-| P2-008 | Deploy Grafana + import dashboards | DevOps | 🔴 | P2-007 |
-| P2-009 | Deploy Loki + Promtail | DevOps | 🔴 | P2-007 |
-| P2-010 | Configure Grafana Discord webhook | DevOps | 🟡 | P2-008 |
-| P2-011 | Create alert rules (6 alerts) | DevOps | 🟡 | P2-010 |
-| P2-012 | Deploy Uptime Kuma + configure monitors | DevOps | 🟢 | — |
-| P2-013 | Configure Nginx routes for new subdomains | DevOps | 🔴 | P2-007, P2-008, P2-012 |
-| P2-014 | Configure Cloudflare Tunnel for new subdomains | DevOps | 🔴 | P2-013 |
+| P2-007 | Deploy Prometheus + scrape config | DevOps | ✅ Done | P2-004 |
+| P2-008 | Deploy Grafana + import dashboards | DevOps | ✅ Done | P2-007 |
+| P2-009 | Deploy Loki + Promtail | DevOps | ✅ Done | P2-007 |
+| P2-010 | Configure Grafana Discord webhook | DevOps | ✅ Done | P2-008 |
+| P2-011 | Create alert rules (6 alerts) | DevOps | ✅ Done | P2-010 |
+| P2-012 | Deploy Uptime Kuma + configure monitors | DevOps | ✅ Done | — |
+| P2-013 | Configure Nginx routes for new subdomains | DevOps | ✅ Done | P2-007, P2-008, P2-012 |
+| P2-014 | Configure Cloudflare Tunnel for new subdomains | DevOps | ✅ Done | P2-013 |
 
 ---
 
@@ -263,12 +263,12 @@ Phase 2 is complete when ALL of the following are true:
 - [x] CI/CD pipeline builds, tests, and pushes images to GHCR for all 3 foundation services
 - [x] Deploy requires manual approval (not auto-deploy)
 - [x] Smoke tests run after deploy and auto-rollback on failure
-- [ ] Prometheus scrapes metrics from all 3 foundation services
-- [ ] Grafana dashboards show JVM health, request rate, error rate, latency
-- [ ] Loki aggregates logs from all containers
-- [ ] Grafana alerts send to Discord webhook when triggered
+- [x] Prometheus scrapes metrics from all 3 foundation services
+- [x] Grafana dashboards show JVM health, request rate, error rate, latency
+- [x] Loki aggregates logs from all containers
+- [x] Grafana alerts send to Discord webhook when triggered
 - [x] Backup cron runs daily at 3 AM, pushes to OneDrive
-- [ ] Uptime Kuma monitors all `*.panomete.com` URLs
+- [x] Uptime Kuma monitors all `*.panomete.com` URLs
 - [ ] All new services deployed through CI/CD (not manual scp)
 
 ---
