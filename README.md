@@ -34,10 +34,11 @@
 | Metrics         | Prometheus                     |  —   | — (internal)           |   ✅    |
 | Dashboards      | Grafana                        |  —   | `grafana.panomete.com` |   ✅    |
 | Log Aggregation | Loki + Promtail                |  —   | — (internal)           |   ✅    |
-| Uptime Monitor  | Uptime Kuma                    |  —   | `status.panomete.com`  |   ⚠️   |
-| CI/CD           | GitHub Actions + GHCR          |  —   | —                      |   ✅    |
-| Alerting        | Uptime Kuma → Discord          |  —   | —                      |   ✅    |
-| Backups         | pg_dumpall + rclone → OneDrive |  —   | —                      |   ⚠️   |
+| Uptime Monitor  | Uptime Kuma                    |  —   | `status.panomete.com`  |   ✅    |
+| Secret Mgmt     | Infisical                      |  —   | `secret.panomete.com`  |   ✅    |
+| CI/CD           | GitHub Actions + GHCR          |  —   | —                      | 📋 Planned |
+| Alerting        | Grafana → Discord              |  —   | —                      | 📋 Planned |
+| Backups         | pg_dumpall + rclone → OneDrive |  —   | —                      | 📋 Planned |
 
 ---
 
@@ -47,7 +48,7 @@
 |-----------|:------:|-------|
 | Docker + Compose | ✅ | All services run as containers |
 | Cloudflare Tunnel | ✅ | TLS termination + external ingress |
-| Nginx Reverse Proxy | ✅ | Subdomain-based routing (10 sites) |
+| Nginx Reverse Proxy | ✅ | Subdomain-based routing (16 sites) |
 | PostgreSQL 18 | ✅ | Shared — Guard + future business services |
 | Valkey 9 | ✅ | Shared — Gate rate limiting |
 | MongoDB 8 | ✅ | Available for document-oriented services |
@@ -76,6 +77,7 @@ flowchart LR
         Grafana["Grafana<br>grafana.panomete.com"]
         Loki["Loki + Promtail"]
         Kuma["Uptime Kuma<br>status.panomete.com"]
+        Secret["Infisical<br>secret.panomete.com"]
     end
 
     subgraph Business["Business 📋 Phase 3+"]
@@ -87,6 +89,7 @@ flowchart LR
     Nginx --> Gate
     Nginx --> Grafana
     Nginx --> Kuma
+    Nginx --> Secret
     Gate --> Services
 
     Guard -.->|"JWKS"| Gate

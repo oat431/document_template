@@ -144,11 +144,7 @@ flowchart TB
 
 ## Project Structure
 
-```mermaid
----
-title: Panomete Platform — Project Structure
----
-treeView-beta
+```
   spec/
   ├── 📋 panomete_platform/  → Platform-Level Docs
   │   ├── README.md  → Architecture Overview (this file)
