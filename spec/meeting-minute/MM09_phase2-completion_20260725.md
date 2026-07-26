@@ -112,6 +112,7 @@ tags: [meeting-minutes, phase-2, phase-3, handoff, completion]
 | Discovery (updated) | Obsidian `microservice_component/discovery.md` | Added GHCR image + metrics |
 | Gateway (updated) | Obsidian `microservice_component/gateway.md` | Added GHCR image + metrics |
 | CI/CD docs (4 files) | `{service}/05_devops/051_CICD_pipeline_configuration.md` | Updated to workflow_dispatch model |
+| QA Test & Security docs (28 files) | `{project}/04_testing/` and `{project}/06_security/` | Test plans, test cases, defect reports, security standards for all 4 projects |
 
 ---
 
@@ -195,7 +196,56 @@ Developer pushes to GitHub
 
 ---
 
-## 6. Action Items
+## 6. QA Documentation — Completed 2026-07-26
+
+> QA persona completed comprehensive test and security documentation for all 4 projects as part of Phase 2 closure. This ensures all foundation services have documented test coverage, security standards, and defect tracking before Phase 3 begins.
+
+### What Was Delivered
+
+| Project | Documents | Test Cases | Defects Found | Security Findings |
+|---------|:---------:|:----------:|:-------------:|:-----------------:|
+| **Panomete Platform** | 7 | 42 | 8 | 8 |
+| **Flowero Gate** | 7 | 45 | 7 | 6 |
+| **Flowero Discover** | 7 | 21 | 8 | 4 |
+| **Flowero Guard** | 7 | 46 | 6 | 6 |
+| **Total** | **28** | **154** | **29** | **24** |
+
+### Documents Created (28 total)
+
+**Per project (7 documents each):**
+1. `04_testing/041_test_plan.md` — Test scope, strategy, schedule
+2. `04_testing/042_test_cases.md` — Detailed test cases with steps
+3. `04_testing/043_defect_report.md` — Defects found during code review
+4. `04_testing/044_regression_test_suite.md` — Smoke + full regression tests
+5. `04_testing/045_coverage_report.md` — Code, requirements, security coverage
+6. `06_security/061_security_test_report.md` — OWASP Top 10 assessment
+7. `06_security/062_coding_standards_security.md` — Security coding standards
+
+### Key Findings
+
+**High-priority defects identified:**
+- Gate: CORS preflight returns 401 (SecurityConfig authenticates OPTIONS before CORS)
+- Gate: JWKS cache never refreshes (key rotation breaks auth until restart)
+- Gate: Rate limit counters lost on Valkey restart (no persistence configured)
+- Guard: Admin console without MFA (Keycloak admin accessible with password only)
+
+**All defects documented with:**
+- Reproduction steps
+- Expected vs actual results
+- Severity classification
+- Remediation suggestions
+
+### Phase 2 QA Status
+
+✅ **Phase 2 QA Documentation: COMPLETE**
+- All 4 projects have test plans, test cases, defect reports
+- All 4 projects have security test reports and coding standards
+- Cross-references verified and consistent across all documents
+- Total: 28 documents, 154 test cases, 29 defects, 24 security findings
+
+---
+
+## 7. Action Items
 
 | Action ID | Action | Owner | Priority | Depends On |
 |-----------|--------|:-----:|:--------:|:----------:|
@@ -233,12 +283,14 @@ Phase 3 is complete when ALL of the following are true:
 3. **Observability** — Prometheus + Grafana + Loki + Uptime Kuma
 4. **Alerting** — Discord notifications on service issues
 5. **Documentation** — Full Obsidian notes for every component
+6. **QA Documentation** — 28 test and security documents covering all 4 projects (154 test cases, 29 defects tracked, 24 security findings)
 
 ### What PO Needs to Decide
 
 1. First business service (DEC-008)
 2. k3s migration timing (DEC-009)
 3. CI/CD template strategy (DEC-010)
+4. **Priority of high-severity defects** — 4 critical defects identified in Gate and Guard (see Section 6)
 
 ### What DevOps Does Next
 
@@ -246,6 +298,7 @@ Phase 3 is complete when ALL of the following are true:
 - Add gateway routes when new services are ready
 - Add Prometheus scrape configs for new services
 - Support Dev with deployment and monitoring
+- **Address high-priority defects** identified in QA documentation (CORS, JWKS cache, rate limiter persistence, Guard admin MFA)
 
 ---
 
@@ -257,8 +310,12 @@ Phase 3 is complete when ALL of the following are true:
 | [[MM08_phase2-po-decisions_20260724]] | PO decisions for Phase 2 |
 | [[../plan/phase2-foundation-hardening]] | Phase 2 plan (all items ✅) |
 | [[../spec/panomete_platform/README]] | Platform architecture |
+| [[../spec/panomete_platform/04_testing/041_test_plan]] | Platform test plan |
+| [[../spec/flowero_gate/04_testing/041_test_plan]] | Gate test plan |
+| [[../spec/flowero_discover/04_testing/041_test_plan]] | Discover test plan |
+| [[../spec/flowero_guard/04_testing/041_test_plan]] | Guard test plan |
 
 ---
 
-> **Status:** Phase 2 complete. Phase 3 awaits PO decision on first business service.
-> **Cross-persona handoff:** DevOps delivers infrastructure. PO + Dev deliver business value. DevOps supports.
+> **Status:** Phase 2 complete including QA documentation (2026-07-26). Phase 3 awaits PO decision on first business service.
+> **Cross-persona handoff:** DevOps delivers infrastructure. QA delivers test & security documentation. PO + Dev deliver business value. DevOps supports.
