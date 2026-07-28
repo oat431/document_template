@@ -33,6 +33,7 @@ flowchart TB
     subgraph YouTube["YouTube Platform"]
         YT_Chat["Live Chat"]
         YT_Sub["Subscription Events"]
+        YT_API["YouTube Data API v3<br>/youtube/v3/subscriptions"]
     end
 
     subgraph StreamerBot["Streamer.bot (Windows Local)"]
@@ -41,10 +42,11 @@ flowchart TB
     end
 
     subgraph Backend["Go Backend (Windows Local)"]
-        API_Sub["/api/v1/subscribers"]
+        API_Sub["/api/v1/subscribers<br>(streamer.bot push)"]
         API_Point["/api/v1/points/{handle}"]
         API_Score["/api/v1/scoreboard"]
         SyncEngine["EasyDonate Sync<br>+ Name Matching"]
+        PollScheduler["YouTube API Polling<br>(every 15 min, 24/7)"]
     end
 
     subgraph DB["PostgreSQL 18 (Homelab)"]
@@ -62,10 +64,12 @@ flowchart TB
         Web_Score["Public Scoreboard Page"]
     end
 
-    %% Subscriber flow
+    %% Subscriber flow — HYBRID
     YT_Sub --> SB_Trig
-    SB_Trig -->|"HTTP POST"| API_Sub
-    API_Sub --> T_Sub
+    SB_Trig -->|"real-time during live"| API_Sub
+    YT_API -->|"poll every 15min (24/7)"| PollScheduler
+    API_Sub -->|"upsert"| T_Sub
+    PollScheduler -->|"upsert"| T_Sub
 
     %% Chat command flow
     YT_Chat --> SB_Trig
@@ -112,15 +116,15 @@ flowchart TB
 |--------|-------|
 | Business Objectives | 4 |
 | Epics | 4 (Register, Bot Commands, Points Engine, Scoreboard) |
-| User Stories | 10 |
-| Story Points | 34 |
-| Acceptance Criteria | 46 (24 🔴 Must Have, 22 🟡 Should Have) |
+| User Stories | 11 |
+| Story Points | 41 |
+| Acceptance Criteria | 53 (31 🔴 Must Have, 22 🟡 Should Have) |
 
 ### Sprint Plan
 
 | Sprint | Stories | Focus |
 |--------|---------|-------|
-| Sprint 1 | US-001, US-002, US-010 | Subscriber registration + Donate command |
+| Sprint 1 | US-001, US-002, US-003, US-010 | Subscriber registration (hybrid) + Donate command |
 | Sprint 2 | US-011, US-012, US-020, US-021 | Point command + EasyDonate sync + Name matching |
 | Sprint 3 | US-022, US-030, US-031 | Point query API + Scoreboard |
 
@@ -134,9 +138,17 @@ flowchart TB
 |-----------|------|----------|
 | HTTP Server | 7474 | `POST /DoAction` — trigger actions from Go backend |
 | WebSocket Server | 8681 | Real-time bidirectional events |
-| YouTube Triggers | — | Chat Message, New Subscriber (31 total) |
+| YouTube Triggers | — | Chat Message, New Subscriber (31 total) — **backup for subscriber capture during live** |
 | User Global Variables | — | Per-user persistent state |
 | Custom Webhook | — | External services can trigger actions |
+
+### YouTube Data API v3
+
+| Capability | Use Case |
+|-----------|----------|
+| `GET /youtube/v3/subscriptions` | **Primary** subscriber source — polls every 15 min, 24/7 coverage |
+| OAuth 2.0 | Requires channel owner authorization |
+| Quota | 10,000 units/day (96 calls/day at 15-min intervals = well within limit) |
 
 ### EasyDonate
 

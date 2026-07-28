@@ -105,7 +105,7 @@ Vision: Build the most engaged YouTube live streaming community
 
 | ID | Objective | Specific | Measurable | Achievable | Relevant | Time-Bound | Priority |
 |----|-----------|----------|-----------|-----------|----------|-----------|----------|
-| OBJ-01 | Automate subscriber registration | Capture new YouTube subscribers to PostgreSQL in real-time via streamer.bot | 100% of new subscribers captured within 5 seconds | streamer.bot has native YouTube subscription trigger | Foundation for all VRM features | Phase 1 | 🔴 |
+| OBJ-01 | Automate subscriber registration | Capture new YouTube subscribers to PostgreSQL via hybrid approach (YouTube API polling 24/7 + streamer.bot real-time during live) | 100% of new subscribers captured within 15 minutes (polling) or 5 seconds (live) | YouTube Data API v3 + streamer.bot subscription trigger | Foundation for all VRM features | Phase 1 | 🔴 |
 | OBJ-02 | Enable chat-based donation promotion | `:deer: donate` command posts EasyDonate link in live chat | 100% command response rate, <2s latency | streamer.bot chat command trigger + send message action | Lowers donation friction | Phase 1 | 🔴 |
 | OBJ-03 | Implement donation-driven point system | `:deer: point` shows viewer's points; 1 THB = 1 point via EasyDonate API | Points accurate to real donations, <5s sync delay | EasyDonate API available, fuzzy name matching | Core VRM mechanic | Phase 1 | 🔴 |
 | OBJ-04 | Provide public community scoreboard | React/Next.js page showing viewer points leaderboard | Page loads <2s, updates within 60s of new donation | Simple read-only API + static frontend | Community visibility | Phase 1 | 🟡 |
@@ -116,10 +116,10 @@ Vision: Build the most engaged YouTube live streaming community
 
 | Field          | Detail                                                                                                     |
 | -------------- | ---------------------------------------------------------------------------------------------------------- |
-| **Statement**  | Automatically capture every new YouTube subscriber's data into PostgreSQL within 5 seconds of subscription |
-| **Specific**   | streamer.bot fires on YouTube subscription event, calls Go backend API, backend upserts subscriber record  |
-| **Measurable** | 100% capture rate (compare streamer.bot logs vs DB count)                                                  |
-| **Achievable** | streamer.bot has native YouTube subscription triggers with HTTP Request sub-action                         |
+| **Statement** | Automatically capture every new YouTube subscriber's data into PostgreSQL via hybrid approach: YouTube Data API polling (24/7) + streamer.bot real-time (during live streams) |
+| **Specific** | Primary: Go backend polls YouTube Data API `/youtube/v3/subscriptions` every 15 minutes. Secondary: streamer.bot fires on YouTube subscription event during live, calls Go backend API. Backend upserts subscriber record (deduplicates by handle) |
+| **Measurable** | 100% capture rate (compare YouTube API subscriber count vs DB count) |
+| **Achievable** | YouTube Data API v3 has `subscriptions.list` endpoint (10,000 quota units/day, 1 unit per call = ~660 calls/day). streamer.bot has native YouTube subscription triggers. Hybrid ensures zero gaps |
 | **Relevant**   | Foundation for all viewer relationship tracking                                                            |
 | **Time-Bound** | Phase 1 MVP                                                                                                |
 | **Owner**      | Dev                                                                                                        |
@@ -230,7 +230,7 @@ Vision: Build the most engaged YouTube live streaming community
 
 | ID | Metric | Target Value | Target Date | Rationale | Stretch Goal |
 |----|--------|-------------|-------------|-----------|-------------|
-| OBJ-01 | Subscriber capture rate | 100% | Phase 1 | Complete automation | — |
+| OBJ-01 | Subscriber capture rate | 100% | Phase 1 | Complete automation (hybrid: YouTube API + streamer.bot) | — |
 | OBJ-02 | Command response rate | 100% | Phase 1 | Reliable automation | <1s latency |
 | OBJ-03 | Point accuracy | 100% | Phase 1 | Trust in system | <30s sync |
 | OBJ-04 | Scoreboard load time | <2s | Phase 1 | Good UX | <1s |
@@ -239,7 +239,7 @@ Vision: Build the most engaged YouTube live streaming community
 
 | ID | Metric | Data Collection Method | Tool / System | Responsible | Collection Frequency | Reporting Format |
 |----|--------|----------------------|---------------|-------------|--------------------|--------------------|
-| OBJ-01 | Capture rate | Log comparison | streamer.bot + PostgreSQL | Dev | Per stream | Manual check |
+| OBJ-01 | Capture rate | Log comparison + API quota monitoring | YouTube API + PostgreSQL + streamer.bot | Dev | Per stream + daily | Query report |
 | OBJ-02 | Response rate | Log analysis | streamer.bot logs | Dev | Per stream | Manual check |
 | OBJ-03 | Point accuracy | Donation reconciliation | EasyDonate API + PostgreSQL | Dev | Daily | Query report |
 | OBJ-04 | Load time | Web vitals | Browser DevTools | Dev | On deploy | Manual check |
@@ -274,9 +274,9 @@ flowchart LR
 
 | ID | Dependency | Type | Affected Objectives | Mitigation |
 |----|-----------|------|-------------------|-----------|
-| DEP-01 | streamer.bot running and configured | External | OBJ-01, OBJ-02, OBJ-03 | Already running — configure triggers |
+| DEP-01 | streamer.bot running and configured | External | OBJ-02, OBJ-03 | Already running — configure triggers. Not needed for subscriber capture (backup only) |
 | DEP-02 | EasyDonate API availability | External | OBJ-03 | Polling fallback, cache last known state |
-| DEP-03 | YouTube API access | External | OBJ-01 | streamer.bot handles this natively |
+| DEP-03 | YouTube Data API v3 access (OAuth) | External | OBJ-01 | Primary subscriber source — requires channel owner OAuth token |
 | DEP-04 | PostgreSQL 18 availability | Internal | All | Already running in homelab |
 
 ---
@@ -289,7 +289,7 @@ flowchart LR
 |----|-----------|------|------------|--------|-----------|-----------|-------|
 | OR-01 | OBJ-03 | EasyDonate API rate limit (60 req/min) | Medium | Medium | 🟡 | Polling interval ≥1s, batch queries | Dev |
 | OR-02 | OBJ-03 | Fuzzy name matching fails (donation name ≠ YouTube handle) | Medium | High | 🟠 | Manual mapping fallback, configurable match rules | Dev |
-| OR-03 | OBJ-01 | streamer.bot subscription event misses | Low | High | 🟡 | Log monitoring, periodic sync as backup | Dev |
+| OR-03 | OBJ-01 | YouTube API quota exhaustion (>10K units/day) | Low | High | 🟡 | Poll every 15 min (96 calls/day), monitor quota usage | Dev |
 | OR-04 | OBJ-04 | Local machine offline = scoreboard down | Medium | Medium | 🟡 | Consider cloud deployment for Phase 2 | Dev |
 
 ### 7.2 Risk Heat Map

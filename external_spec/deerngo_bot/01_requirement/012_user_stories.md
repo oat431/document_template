@@ -88,11 +88,11 @@ Then [outcome]
 
 | Epic ID | Epic Name | Stories | Total Points | Sprint |
 |---------|-----------|---------|-------------|--------|
-| E-01 | Register (Subscriber Capture) | 2 | 5 | Sprint 1 |
+| E-01 | Register (Subscriber Capture) | 3 | 12 | Sprint 1 |
 | E-02 | Bot — Commands | 3 | 8 | Sprint 1-2 |
 | E-03 | Points Engine | 3 | 13 | Sprint 2-3 |
 | E-04 | Web Scoreboard | 2 | 8 | Sprint 3 |
-| **Total** | | **10** | **34** | |
+| **Total** | | **11** | **41** | |
 
 ---
 
@@ -100,18 +100,19 @@ Then [outcome]
 
 ### Epic E-01: Register (Subscriber Capture)
 
-#### US-001: Capture New Subscriber
+#### US-001: Capture New Subscriber (Hybrid — YouTube API + streamer.bot)
 
 **As a** streamer (Deer_NGO)
-**I want** every new YouTube subscriber to be automatically saved to my database
-**So that** I can track my community growth and use subscriber data for the points system
+**I want** every new YouTube subscriber to be automatically saved to my database — whether I'm live or not
+**So that** I can track my community growth 24/7 and use subscriber data for the points system
 
 **Acceptance Criteria:**
-- **AC-1:** Given a viewer subscribes to @Deer_NGO on YouTube, When streamer.bot fires the subscription event, Then the Go backend receives the event and creates a subscriber record with YouTube handle, display name, and subscription timestamp
-- **AC-2:** Given a subscriber already exists in the database, When the same subscriber subscribes again (re-sub), Then the existing record is updated (upsert) with the new subscription timestamp
-- **AC-3:** Given the backend is down, When streamer.bot fires a subscription event, Then the HTTP request fails and streamer.bot logs the error (no data loss — event is retried on next occurrence)
+- **AC-1:** Given a viewer subscribes to @Deer_NGO during a live stream, When streamer.bot fires the subscription event, Then the Go backend receives the event and creates/updates a subscriber record with YouTube handle, display name, and subscription timestamp (real-time, <5s)
+- **AC-2:** Given a viewer subscribes outside of live streaming hours (streamer.bot offline), When the YouTube API polling scheduler runs (every 15 minutes), Then the Go backend fetches new subscribers from YouTube Data API and creates/updates records in PostgreSQL
+- **AC-3:** Given a subscriber already exists in the database, When the same subscriber is captured again (from either source), Then the existing record is updated (upsert by youtube_handle) — no duplicates
+- **AC-4:** Given both sources capture the same subscriber (streamer.bot during live + API polling), When the upsert runs, Then the record is updated with the earliest subscription timestamp (no data conflict)
 
-**Story Points:** 3
+**Story Points:** 5
 **Priority:** 🔴 Must Have
 **Epic:** E-01
 **Sprint:** Sprint 1
@@ -123,15 +124,37 @@ Then [outcome]
 #### US-002: Subscriber Registration API
 
 **As a** developer
-**I want** a REST API endpoint that accepts subscriber registration events
-**So that** streamer.bot can push subscriber data to the backend
+**I want** a REST API endpoint that accepts subscriber registration events from streamer.bot
+**So that** real-time subscriber data can be pushed to the backend during live streams
 
 **Acceptance Criteria:**
-- **AC-1:** Given a POST request to `/api/v1/subscribers` with valid payload (youtube_handle, display_name, subscribed_at), When the backend processes it, Then a 201 Created response is returned with the subscriber record
+- **AC-1:** Given a POST request to `/api/v1/subscribers` with valid payload (youtube_handle, display_name, subscribed_at, source), When the backend processes it, Then a 201 Created response is returned with the subscriber record
 - **AC-2:** Given a POST request with a duplicate youtube_handle, When the backend processes it, Then the existing record is updated (upsert) and a 200 OK response is returned
 - **AC-3:** Given a POST request with missing required fields, When validation runs, Then a 400 Bad Request response is returned with specific field-level errors
 
 **Story Points:** 2
+**Priority:** 🔴 Must Have
+**Epic:** E-01
+**Sprint:** Sprint 1
+**Status:** Draft
+**Objective:** OBJ-01
+
+---
+
+#### US-003: YouTube API Polling Scheduler
+
+**As a** system
+**I want** to periodically poll the YouTube Data API for new subscribers
+**So that** subscribers who join outside of live streaming hours are captured (24/7 coverage)
+
+**Acceptance Criteria:**
+- **AC-1:** Given the Go backend is running, When the polling scheduler triggers (every 15 minutes), Then it calls YouTube Data API `GET /youtube/v3/subscriptions` with the channel's OAuth token
+- **AC-2:** Given the API returns new subscribers not in the database, When the backend processes them, Then each new subscriber is inserted with youtube_handle, display_name, subscribed_at, and source="youtube_api"
+- **AC-3:** Given the API returns subscribers already in the database, When the upsert runs, Then existing records are updated (no duplicates) with the earliest subscription timestamp preserved
+- **AC-4:** Given the YouTube API returns a quota exceeded error (403), When the scheduler detects it, Then it logs the error and skips the next poll cycle (quota = 10,000 units/day, polling every 15 min = 96 calls/day = well within limit)
+- **AC-5:** Given the OAuth token has expired, When the API returns 401 Unauthorized, Then the backend logs the error and alerts the operator (manual re-auth required)
+
+**Story Points:** 5
 **Priority:** 🔴 Must Have
 **Epic:** E-01
 **Sprint:** Sprint 1
@@ -313,17 +336,17 @@ Then [outcome]
 
 | Epic | Stories | Total Points | Sprint Allocation |
 |------|---------|-------------|------------------|
-| E-01 Register | 2 | 5 | Sprint 1 |
+| E-01 Register | 3 | 12 | Sprint 1 |
 | E-02 Bot Commands | 3 | 8 | Sprint 1-2 |
 | E-03 Points Engine | 3 | 13 | Sprint 2-3 |
 | E-04 Web Scoreboard | 2 | 8 | Sprint 3 |
-| **Total** | **10** | **34** | |
+| **Total** | **11** | **41** | |
 
 ## 6. Story Map
 
 | | Sprint 1 | Sprint 2 | Sprint 3 |
 |--|---------|---------|---------|
-| **E-01 Register** | US-001, US-002 | | |
+| **E-01 Register** | US-001, US-002, US-003 | | |
 | **E-02 Bot Commands** | US-010 | US-011, US-012 | |
 | **E-03 Points Engine** | | US-020, US-021 | US-022 |
 | **E-04 Scoreboard** | | | US-030, US-031 |

@@ -71,24 +71,38 @@ Then [expected outcome / result]
 
 ### 3.1 E-01: Register (Subscriber Capture)
 
-#### US-001: Capture New Subscriber
+#### US-001: Capture New Subscriber (Hybrid)
 
 | AC ID | Scenario | Given | When | Then | Priority |
 |-------|---------|-------|------|------|----------|
-| AC-001a | Happy path — new subscriber | A viewer subscribes to @Deer_NGO on YouTube and streamer.bot fires the subscription event | The Go backend receives the POST request | A subscriber record is created with: youtube_handle, display_name, subscribed_at (timestamp) | 🔴 |
-| AC-001b | Re-subscriber (upsert) | A subscriber with handle "@viewer1" already exists in the database | The same viewer subscribes again and streamer.bot fires the event | The existing record is updated with the new subscribed_at timestamp (no duplicate) | 🔴 |
-| AC-001c | Backend down | The Go backend is not running | streamer.bot fires a subscription event | The HTTP request fails, streamer.bot logs the error. No crash, no data corruption | 🟡 |
-| AC-001d | Missing display_name | A subscriber event arrives with youtube_handle but no display_name | The backend processes the request | The record is created with display_name = youtube_handle (fallback) | 🟡 |
+| AC-001a | Real-time during live | A viewer subscribes to @Deer_NGO during a live stream and streamer.bot fires the subscription event | The Go backend receives the POST request | A subscriber record is created with: youtube_handle, display_name, subscribed_at, source="streamer_bot". Response time <5s | 🔴 |
+| AC-001b | Offline via YouTube API polling | A viewer subscribes at 3am (streamer.bot is offline) | The YouTube API polling scheduler runs (every 15 min) | The backend fetches new subscribers from YouTube Data API and creates/updates records with source="youtube_api" | 🔴 |
+| AC-001c | Re-subscriber (upsert) | A subscriber with handle "@viewer1" already exists in the database | The same subscriber is captured again (from either source) | The existing record is updated (upsert by youtube_handle) — no duplicate created | 🔴 |
+| AC-001d | Both sources capture same subscriber | streamer.bot captures "@viewer1" during live, then API polling also finds "@viewer1" | The upsert runs from the second source | The record is NOT overwritten — the earliest subscription timestamp is preserved | 🔴 |
+| AC-001e | Backend down during live | The Go backend is not running | streamer.bot fires a subscription event | The HTTP request fails, streamer.bot logs the error. The next API polling cycle will catch the subscriber | 🟡 |
+| AC-001f | Missing display_name | A subscriber event arrives with youtube_handle but no display_name | The backend processes the request | The record is created with display_name = youtube_handle (fallback) | 🟡 |
 
 #### US-002: Subscriber Registration API
 
 | AC ID | Scenario | Given | When | Then | Priority |
 |-------|---------|-------|------|------|----------|
-| AC-002a | Valid payload | The API receives POST /api/v1/subscribers with {youtube_handle: "@viewer1", display_name: "Viewer One", subscribed_at: "2026-07-29T10:00:00Z"} | The backend validates and processes | 201 Created returned with the full subscriber record including id | 🔴 |
+| AC-002a | Valid payload | The API receives POST /api/v1/subscribers with {youtube_handle: "@viewer1", display_name: "Viewer One", subscribed_at: "2026-07-29T10:00:00Z", source: "streamer_bot"} | The backend validates and processes | 201 Created returned with the full subscriber record including id | 🔴 |
 | AC-002b | Duplicate handle (upsert) | A subscriber with handle "@viewer1" exists | POST /api/v1/subscribers with same youtube_handle | 200 OK returned, existing record updated | 🔴 |
 | AC-002c | Missing required field | POST /api/v1/subscribers with {display_name: "Viewer One"} (no youtube_handle) | Validation runs | 400 Bad Request with error: "youtube_handle is required" | 🔴 |
 | AC-002d | Empty payload | POST /api/v1/subscribers with {} | Validation runs | 400 Bad Request with errors for all required fields | 🟡 |
 | AC-002e | Invalid timestamp | POST /api/v1/subscribers with {youtube_handle: "@viewer1", subscribed_at: "not-a-date"} | Validation runs | 400 Bad Request with error: "subscribed_at must be ISO 8601" | 🟡 |
+
+#### US-003: YouTube API Polling Scheduler
+
+| AC ID | Scenario | Given | When | Then | Priority |
+|-------|---------|-------|------|------|----------|
+| AC-003a | Happy path — new subscribers found | The Go backend is running, YouTube API returns 5 new subscribers | The polling scheduler triggers (every 15 min) | The backend calls `GET /youtube/v3/subscriptions` and creates 5 subscriber records with source="youtube_api" | 🔴 |
+| AC-003b | Upsert existing subscribers | YouTube API returns 3 subscribers, 2 already in DB | The polling scheduler processes them | 2 existing records are updated (no duplicate), 1 new record is created | 🔴 |
+| AC-003c | Preserve earliest timestamp | Subscriber "@viewer1" was captured via streamer.bot at 10:00. API polling finds same subscriber at 10:15 | The upsert runs | The existing record is NOT overwritten — the 10:00 timestamp is preserved | 🔴 |
+| AC-003d | No new subscribers | YouTube API returns 0 new subscribers | The polling scheduler processes the response | No records created/updated, scheduler completes without error | 🟡 |
+| AC-003e | YouTube API quota exceeded (403) | YouTube API returns 403 quotaExceeded error | The scheduler detects the error | The scheduler logs the error and skips the next poll cycle. Quota = 10,000 units/day, 96 calls/day is well within limit | 🔴 |
+| AC-003f | OAuth token expired (401) | YouTube API returns 401 Unauthorized | The scheduler detects the error | The backend logs the error and alerts the operator (manual re-auth required) | 🔴 |
+| AC-003g | Polling interval | The Go backend is running | 15 minutes have passed since last poll | A new poll cycle starts automatically | 🔴 |
 
 ---
 
@@ -185,8 +199,9 @@ Then [expected outcome / result]
 
 | Requirement | Total ACs | 🔴 Must Have | 🟡 Should Have | Status |
 |------------|----------|-------------|---------------|--------|
-| US-001 Capture Subscriber | 4 | 2 | 2 | Draft |
+| US-001 Capture Subscriber | 6 | 4 | 2 | Draft |
 | US-002 Subscriber API | 5 | 3 | 2 | Draft |
+| US-003 YouTube API Polling | 7 | 5 | 2 | Draft |
 | US-010 Donate Command | 4 | 2 | 2 | Draft |
 | US-011 Point Command | 4 | 3 | 1 | Draft |
 | US-012 SB Action Config | 4 | 3 | 1 | Draft |
@@ -195,7 +210,7 @@ Then [expected outcome / result]
 | US-022 Point Query API | 5 | 4 | 1 | Draft |
 | US-030 Scoreboard Page | 5 | 0 | 5 | Draft |
 | US-031 Scoreboard API | 4 | 0 | 4 | Draft |
-| **Total** | **46** | **24** | **22** | |
+| **Total** | **53** | **31** | **22** | |
 
 ---
 
@@ -212,6 +227,13 @@ Then [expected outcome / result]
 | AC-002c | US-002 | TC-007 | ⬜ Not Run |
 | AC-002d | US-002 | TC-008 | ⬜ Not Run |
 | AC-002e | US-002 | TC-009 | ⬜ Not Run |
+| AC-003a | US-003 | TC-047 | ⬜ Not Run |
+| AC-003b | US-003 | TC-048 | ⬜ Not Run |
+| AC-003c | US-003 | TC-049 | ⬜ Not Run |
+| AC-003d | US-003 | TC-050 | ⬜ Not Run |
+| AC-003e | US-003 | TC-051 | ⬜ Not Run |
+| AC-003f | US-003 | TC-052 | ⬜ Not Run |
+| AC-003g | US-003 | TC-053 | ⬜ Not Run |
 | AC-010a | US-010 | TC-010 | ⬜ Not Run |
 | AC-010b | US-010 | TC-011 | ⬜ Not Run |
 | AC-010c | US-010 | TC-012 | ⬜ Not Run |
