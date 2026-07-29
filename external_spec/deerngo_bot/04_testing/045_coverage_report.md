@@ -38,8 +38,8 @@ Tracks testing coverage across three dimensions: requirements coverage (ACs → 
 | Total Acceptance Criteria | 54 | 100% |
 | ACs with test cases | 54 | **100%** |
 | ACs without test cases | 0 | 0% |
-| 🔴 Must Have ACs covered | 31/31 | **100%** |
-| 🟡 Should Have ACs covered | 23/23 | **100%** |
+| 🔴 Must Have ACs covered | 32/32 | **100%** |
+| 🟡 Should Have ACs covered | 22/22 | **100%** |
 
 ### 2.2 Coverage by Epic
 
@@ -55,7 +55,7 @@ Tracks testing coverage across three dimensions: requirements coverage (ACs → 
 
 | User Story | ACs | 🔴 | 🟡 | Test Cases | Coverage |
 |------------|:---:|:---:|:---:|:----------:|:--------:|
-| US-001 Capture Subscriber | 6 | 4 | 2 | TC-001 → TC-006 | 100% |
+| US-001 Capture Subscriber | 6 | 5 | 1 | TC-001 → TC-006 | 100% |
 | US-002 Subscriber API | 5 | 3 | 2 | TC-007 → TC-011 | 100% |
 | US-003 YouTube API Polling | 7 | 5 | 2 | TC-012 → TC-018 | 100% |
 | US-010 Donate Command | 4 | 2 | 2 | TC-019 → TC-022 | 100% |
