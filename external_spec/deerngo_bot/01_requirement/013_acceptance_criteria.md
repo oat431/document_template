@@ -80,7 +80,7 @@ Then [expected outcome / result]
 | AC-001c | Re-subscriber (upsert) | A subscriber with handle "@viewer1" already exists in the database | The same subscriber is captured again (from either source) | The existing record is updated (upsert by youtube_handle) — no duplicate created | 🔴 |
 | AC-001d | Both sources capture same subscriber | streamer.bot captures "@viewer1" during live, then API polling also finds "@viewer1" | The upsert runs from the second source | The record is NOT overwritten — the earliest subscription timestamp is preserved | 🔴 |
 | AC-001e | Backend down during live | The Go backend is not running | streamer.bot fires a subscription event | The HTTP request fails, streamer.bot logs the error. The next API polling cycle will catch the subscriber | 🟡 |
-| AC-001f | Missing display_name | A subscriber event arrives with youtube_handle but no display_name | The backend processes the request | The record is created with display_name = youtube_handle (fallback) | 🟡 |
+| AC-001f | Missing display_name (rejected) | A subscriber event arrives with youtube_handle but no display_name | The backend processes the request | 400 Bad Request with error: "display_name is required" — no fallback, API Spec is strict | 🔴 |
 
 #### US-002: Subscriber Registration API
 
@@ -200,7 +200,7 @@ Then [expected outcome / result]
 
 | Requirement | Total ACs | 🔴 Must Have | 🟡 Should Have | Status |
 |------------|----------|-------------|---------------|--------|
-| US-001 Capture Subscriber | 6 | 4 | 2 | Draft |
+| US-001 Capture Subscriber | 6 | 5 | 1 | Draft |
 | US-002 Subscriber API | 5 | 3 | 2 | Draft |
 | US-003 YouTube API Polling | 7 | 5 | 2 | Draft |
 | US-010 Donate Command | 4 | 2 | 2 | Draft |
@@ -211,7 +211,7 @@ Then [expected outcome / result]
 | US-022 Point Query API | 5 | 4 | 1 | Draft |
 | US-030 Scoreboard Page | 5 | 0 | 5 | Draft |
 | US-031 Scoreboard API | 5 | 0 | 5 | Draft |
-| **Total** | **54** | **31** | **23** | |
+| **Total** | **54** | **32** | **22** | |
 
 ---
 
