@@ -118,7 +118,7 @@ flowchart TB
 | Epics | 4 (Register, Bot Commands, Points Engine, Scoreboard) |
 | User Stories | 11 |
 | Story Points | 41 |
-| Acceptance Criteria | 53 (31 🔴 Must Have, 22 🟡 Should Have) |
+| Acceptance Criteria | 54 (31 🔴 Must Have, 23 🟡 Should Have) |
 
 ### Sprint Plan
 

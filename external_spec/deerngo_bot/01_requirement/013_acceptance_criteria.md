@@ -188,10 +188,11 @@ Then [expected outcome / result]
 
 | AC ID | Scenario | Given | When | Then | Priority |
 |-------|---------|-------|------|------|----------|
-| AC-031a | Happy path | 50 viewers have points in the database | GET /api/v1/scoreboard | 200 OK with JSON array of viewers sorted by points descending, each with: rank, display_name, youtube_handle, total_points | 🟡 |
-| AC-031b | Empty scoreboard | No viewers have points | GET /api/v1/scoreboard | 200 OK with empty array [] (not an error) | 🟡 |
-| AC-031c | Pagination | 200 viewers have points | GET /api/v1/scoreboard?page=1&limit=50 | 200 OK with first 50 viewers | 🟡 |
-| AC-031d | Page 2 | 200 viewers have points | GET /api/v1/scoreboard?page=2&limit=50 | 200 OK with viewers 51-100 | 🟡 |
+| AC-031a | Happy path | 50 viewers have points in the database | GET /api/v1/scoreboard | 200 OK with JSON array of viewers sorted by points descending, each with: rank, display_name, youtube_handle, total_points. Only viewers with total_points > 0 are included | 🟡 |
+| AC-031b | Empty scoreboard | No viewers have points (or all have 0) | GET /api/v1/scoreboard | 200 OK with empty array [] (not an error) | 🟡 |
+| AC-031c | Zero-point viewers excluded | 5 subscribers exist, but only 3 have donated (points > 0) | GET /api/v1/scoreboard | 200 OK with only the 3 viewers who have points (0-point viewers excluded) | 🟡 |
+| AC-031d | Pagination | 200 viewers have points | GET /api/v1/scoreboard?page=1&limit=50 | 200 OK with first 50 viewers | 🟡 |
+| AC-031e | Page 2 | 200 viewers have points | GET /api/v1/scoreboard?page=2&limit=50 | 200 OK with viewers 51-100 | 🟡 |
 
 ---
 
@@ -209,8 +210,8 @@ Then [expected outcome / result]
 | US-021 Name Matching | 6 | 4 | 2 | Draft |
 | US-022 Point Query API | 5 | 4 | 1 | Draft |
 | US-030 Scoreboard Page | 5 | 0 | 5 | Draft |
-| US-031 Scoreboard API | 4 | 0 | 4 | Draft |
-| **Total** | **53** | **31** | **22** | |
+| US-031 Scoreboard API | 5 | 0 | 5 | Draft |
+| **Total** | **54** | **31** | **23** | |
 
 ---
 
@@ -271,6 +272,7 @@ Then [expected outcome / result]
 | AC-031b | US-031 | TC-044 | ⬜ Not Run |
 | AC-031c | US-031 | TC-045 | ⬜ Not Run |
 | AC-031d | US-031 | TC-046 | ⬜ Not Run |
+| AC-031e | US-031 | TC-054 | ⬜ Not Run |
 
 ---
 
