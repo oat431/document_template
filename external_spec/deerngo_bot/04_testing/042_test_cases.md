@@ -1,1600 +1,567 @@
 ---
 document_type: Test Cases
-version: "0.1"
+version: "0.2"
 status: Draft
-author: "QA Engineer"
+author: "QA Engineer / PO"
 created: "2026-07-30"
-last_updated: "2026-07-30"
+last_updated: "2026-08-02"
 project_name: "Deerngo Bot"
 project_id: "DERNBOT-001"
 classification: "Internal"
-tags: [test-cases, test-scenarios, swebok, iso-29119, vrm, deerngo-bot]
+tags: [test-cases, test-scenarios, swebok, iso-29119, vrm, members, privacy]
 standard_ref:
   - SWEBOK v4 — Testing
   - ISO/IEC/IEEE 29119 — Software Testing
 ---
 
-# Test Cases
+# Test Cases — Active Phase 1 MVP
 
 > **Project:** Deerngo Bot — Viewer Relationship Management (VRM)
-> **Version:** 0.1 | **Status:** Draft
-> **Last Updated:** 2026-07-30
+> **Version:** 0.2 | **Status:** Draft
+> **Last Updated:** 2026-08-02
+>
+> **Scope:** Explicit member registration, streamer.bot commands, EasyDonate ingestion, normalized exact matching, member points, visibility, and public scoreboard.
+>
+> **Superseded:** Original subscriber polling cases TC-012–TC-018 are historical and excluded from active regression.
 
 ---
 
 ## 1. Purpose
 
-Detailed test cases — preconditions, steps, expected results, and traceability for each acceptance criteria. All 54 ACs mapped to 56 test cases (AC-031d and AC-031e split into separate pagination tests).
+This document defines 62 active test cases mapped one-to-one to the 62 active acceptance criteria in `013_acceptance_criteria.md`. All cases are currently **⬜ Not Run**; this document is a test design, not execution evidence.
 
 ## 2. Test Case Index
 
-| Module | Total | Automated | Manual | Status |
-|--------|:-----:|:---------:|:------:|--------|
-| E-01 Subscriber Capture | 18 | 14 | 4 | ⬜ Not Run |
-| E-02 Bot Commands | 12 | 4 | 8 | ⬜ Not Run |
-| E-03 Points Engine | 16 | 14 | 2 | ⬜ Not Run |
-| E-04 Scoreboard | 10 | 6 | 4 | ⬜ Not Run |
-| Cross-Cutting (Rate Limiting + HMAC) | 3 | 2 | 1 | ⬜ Not Run |
-| **Total** | **59** | **40** | **19** | |
+| Module | Cases | Automated Target | Manual Target | Status |
+|--------|-------|:----------------:|:-------------:|--------|
+| E-01 Member Registration | TC-M001–M013 | 11 | 2 | ⬜ Not Run |
+| E-02 Bot Commands | TC-M014–M030 | 13 | 4 | ⬜ Not Run |
+| E-03 Points Engine | TC-M031–M050 | 18 | 2 | ⬜ Not Run |
+| E-04 Scoreboard | TC-M051–M062 | 9 | 3 | ⬜ Not Run |
+| **Total** | **TC-M001–M062** | **51** | **11** | |
 
-> Manual tests cover streamer.bot integration (black-box, Windows-only) and UI responsive design.
+## 3. Common Test Data
 
-## 3. Test Case Template
-
-| Field | Value |
-|-------|-------|
-| **Test Case ID** | TC-XXX |
-| **Title** | Descriptive title |
-| **Module** | E-0X: Module Name |
-| **Priority** | 🔴 Critical / 🟡 High / 🟢 Medium |
-| **Type** | Unit / Integration / System / Manual |
-| **Automated** | Yes / No |
-| **Requirement** | AC-XXX → US-XXX |
-
-### Preconditions
-
-| # | Condition |
-|---|----------|
-| 1 | Precondition description |
-
-### Test Steps
-
-| Step | Action | Expected Result |
-|------|--------|----------------|
-
-### Post-conditions
-
-| # | Condition |
-|---|----------|
-| 1 | Post-condition description |
+| Identifier | Value |
+|------------|-------|
+| Active public member | user `UC-test-001`, handle `testviewer1`, points 500 |
+| Active private member | user `UC-test-002`, handle `privateviewer`, points 563 |
+| Active zero-point member | user `UC-test-003`, handle `newviewer`, points 0 |
+| Inactive member | user `UC-test-004`, handle `oldviewer`, points 700 |
+| Normalization | trim, remove one leading `@`, lowercase |
+| Provider reference | `EZDN-TEST-001` |
+| Test DB | isolated PostgreSQL `deerngo_test` |
 
 ---
 
-## 4. Test Cases — E-01: Subscriber Capture
+## 4. E-01 — Member Registration
 
-### 4.1 US-001: Capture New Subscriber (Hybrid)
-
----
-
-#### TC-001: Real-time Subscriber Capture via streamer.bot
+### TC-M001 — New member registration
 
 | Field | Value |
 |-------|-------|
-| **ID** | TC-001 |
-| **Title** | Capture new subscriber in real-time during live stream |
-| **Priority** | 🔴 Critical |
-| **Type** | Integration |
-| **Automated** | Yes |
-| **Requirement** | AC-001a → US-001 |
+| Requirement | AC-001a → US-001 |
+| Priority | 🔴 |
+| Type | Integration |
+| Automated | Yes |
 
-**Preconditions:**
+**Given** no active member exists for `UC-test-001`.
+**When** `POST /api/v1/members/register` receives `youtube_user_id=UC-test-001`, `youtube_handle=@TestViewer1`.
+**Then** response is `201`; an active member exists with normalized handle `testviewer1`, 0 points, `public_visibility=true`, `registered_at`, and no display name column/value.
 
-| # | Condition |
-|---|----------|
-| 1 | Go backend is running on port 8008 |
-| 2 | PostgreSQL `deerngo_test` database is empty (no subscribers) |
-| 3 | streamer.bot is running and connected to @Deer_NGO's YouTube chat |
-
-**Test Steps:**
-
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | Send `POST /api/v1/subscribers` with body: `{"youtube_handle": "@newviewer", "display_name": "New Viewer", "subscribed_at": "2026-07-30T10:00:00Z", "source": "streamer_bot"}` | Response status: `201 Created` |
-| 2 | Verify response body | Contains `data.id` (UUID), `data.youtube_handle`: `"@newviewer"`, `data.source`: `"streamer_bot"` |
-| 3 | Query PostgreSQL: `SELECT * FROM subscribers WHERE youtube_handle = 'newviewer'` | Record exists with `display_name = 'New Viewer'`, `source = 'streamer_bot'` |
-| 4 | Measure response time | Response time < 5 seconds |
-
-**Post-conditions:**
-
-| # | Condition |
-|---|----------|
-| 1 | 1 subscriber record in database |
-
----
-
-#### TC-002: Offline Subscriber Capture via YouTube API Polling
+### TC-M002 — Same-handle registration is idempotent
 
 | Field | Value |
 |-------|-------|
-| **ID** | TC-002 |
-| **Title** | Capture subscriber via YouTube API polling when streamer.bot is offline |
-| **Priority** | 🔴 Critical |
-| **Type** | Integration |
-| **Automated** | Yes |
-| **Requirement** | AC-001b → US-001 |
+| Requirement | AC-001b → US-001 |
+| Priority | 🔴 |
+| Type | Integration |
+| Automated | Yes |
 
-**Preconditions:**
+**Given** active member `UC-test-001/testviewer1` has 500 points.
+**When** the same registration is sent again.
+**Then** response is `200` with already-registered result; member count, points, timestamps, and handle do not change.
 
-| # | Condition |
-|---|----------|
-| 1 | Go backend is running |
-| 2 | YouTube API mock returns 1 new subscriber: `{"handle": "@offlineviewer", "displayName": "Offline Viewer"}` |
-| 3 | Database is empty |
-
-**Test Steps:**
-
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | Trigger YouTube API polling scheduler | Scheduler calls mock YouTube API |
-| 2 | Verify response from mock | API called with correct OAuth token and channel ID |
-| 3 | Query PostgreSQL: `SELECT * FROM subscribers WHERE youtube_handle = 'offlineviewer'` | Record exists with `source = 'youtube_api'` |
-| 4 | Verify `subscribed_at` timestamp | Matches the timestamp from YouTube API response |
-
----
-
-#### TC-003: Re-subscriber Upsert (No Duplicate)
+### TC-M003 — Changed handle creates a new zero-point member
 
 | Field | Value |
 |-------|-------|
-| **ID** | TC-003 |
-| **Title** | Re-subscriber does not create duplicate — existing record updated |
-| **Priority** | 🔴 Critical |
-| **Type** | Integration |
-| **Automated** | Yes |
-| **Requirement** | AC-001c → US-001 |
+| Requirement | AC-001c → US-001 |
+| Priority | 🔴 |
+| Type | Integration |
+| Automated | Yes |
 
-**Preconditions:**
+**Given** active member `UC-test-001/testviewer1` has 500 points.
+**When** the same user registers as `NewHandle`.
+**Then** old row is inactive with 500 points; new row is active with `newhandle` and 0 points; no transfer occurs.
 
-| # | Condition |
-|---|----------|
-| 1 | Database contains subscriber: `youtube_handle = 'viewer1'`, `subscribed_at = '2026-07-28T10:00:00Z'` |
-
-**Test Steps:**
-
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | Send `POST /api/v1/subscribers` with `youtube_handle: "@viewer1"`, `subscribed_at: "2026-07-30T10:00:00Z"` | Response status: `200 OK` (upsert) |
-| 2 | Verify response body | `meta.upserted = true` |
-| 3 | Query PostgreSQL: `SELECT COUNT(*) FROM subscribers WHERE youtube_handle = 'viewer1'` | Count = 1 (no duplicate) |
-| 4 | Verify `subscribed_at` | Still `2026-07-28T10:00:00Z` (earliest preserved) |
-
----
-
-#### TC-004: Dual-Source Timestamp Preservation
+### TC-M004 — Active handle conflict is rejected
 
 | Field | Value |
 |-------|-------|
-| **ID** | TC-004 |
-| **Title** | Both sources capture same subscriber — earliest timestamp preserved |
-| **Priority** | 🔴 Critical |
-| **Type** | Integration |
-| **Automated** | Yes |
-| **Requirement** | AC-001d → US-001 |
+| Requirement | AC-001d → US-001 |
+| Priority | 🔴 |
+| Type | Integration |
+| Automated | Yes |
 
-**Preconditions:**
+**Given** active member `UC-test-001` owns `testviewer1`.
+**When** `UC-other` registers `@TESTVIEWER1`.
+**Then** response is `409 HANDLE_IN_USE`; no member/status/points change occurs.
 
-| # | Condition |
-|---|----------|
-| 1 | streamer.bot captures `@viewer1` at `2026-07-30T10:00:00Z` (earlier) |
-| 2 | Database has record with `subscribed_at = '2026-07-30T10:00:00Z'` |
-
-**Test Steps:**
-
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | Trigger YouTube API polling that returns `@viewer1` with `subscribed_at: "2026-07-30T10:15:00Z"` | Upsert runs |
-| 2 | Query PostgreSQL: `SELECT subscribed_at FROM subscribers WHERE youtube_handle = 'viewer1'` | `subscribed_at = '2026-07-30T10:00:00Z'` (earliest preserved) |
-| 3 | Verify `updated_at` | Updated to current time (record touched, but timestamp not overwritten) |
-
----
-
-#### TC-005: Backend Down During Live — Graceful Failure
+### TC-M005 — Typed handle is ignored
 
 | Field | Value |
 |-------|-------|
-| **ID** | TC-005 |
-| **Title** | Backend down — streamer.bot HTTP request fails, no crash |
-| **Priority** | 🟡 High |
-| **Type** | Manual |
-| **Automated** | No |
-| **Requirement** | AC-001e → US-001 |
+| Requirement | AC-001e → US-001 |
+| Priority | 🔴 |
+| Type | System |
+| Automated | No |
 
-**Preconditions:**
+**Given** streamer.bot receives a command from `UC-test-001` whose message contains another viewer's handle.
+**When** streamer.bot posts the registration request.
+**Then** backend stores only the supplied actual identity and ignores command text.
 
-| # | Condition |
-|---|----------|
-| 1 | Go backend is NOT running |
-| 2 | streamer.bot is running with HTTP Request action configured |
-
-**Test Steps:**
-
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | Trigger a subscription event in streamer.bot | streamer.bot fires HTTP Request to `localhost:8008` |
-| 2 | Observe streamer.bot logs | Error logged (connection refused / timeout) |
-| 3 | Verify streamer.bot | Does not crash, continues operating |
-
----
-
-#### TC-006: Missing Display Name — 400 Validation Error
+### TC-M006 — New registration response wording
 
 | Field | Value |
 |-------|-------|
-| **ID** | TC-006 |
-| **Title** | Empty display_name returns 400 — field is required |
-| **Priority** | 🟡 High |
-| **Type** | Integration |
-| **Automated** | Yes |
-| **Requirement** | AC-001f → US-001 (revised per PO decision DEF-S001) |
+| Requirement | AC-001f → US-001 |
+| Priority | 🔴 |
+| Type | Manual |
+| Automated | No |
 
-**Preconditions:**
+**Given** a new member is created through streamer.bot.
+**When** success is returned.
+**Then** chat contains the approved registration/scoreboard notice.
 
-| # | Condition |
-|---|----------|
-| 1 | Go backend is running |
-| 2 | Database is empty |
-
-**Test Steps:**
-
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | Send `POST /api/v1/subscribers` with `youtube_handle: "@novalue"`, `display_name: ""` | `400 Bad Request` |
-| 2 | Verify response body | `error.code = "VALIDATION_ERROR"`, `error.details` contains `field: "display_name"` |
-
-> **PO Decision (DEF-S001):** `display_name` is required. AC-001f to be removed/rewritten. API Spec stays strict.
-
----
-
-### 4.2 US-002: Subscriber Registration API
-
----
-
-#### TC-007: Valid Subscriber Payload — 201 Created
+### TC-M007 — Backend unavailable does not create partial member
 
 | Field | Value |
 |-------|-------|
-| **ID** | TC-007 |
-| **Title** | Valid POST creates subscriber — 201 response with full record |
-| **Priority** | 🔴 Critical |
-| **Type** | Integration |
-| **Automated** | Yes |
-| **Requirement** | AC-002a → US-002 |
+| Requirement | AC-001g → US-001 |
+| Priority | 🔴 |
+| Type | Manual |
+| Automated | No |
 
-**Preconditions:**
+**Given** streamer.bot is online but backend is stopped.
+**When** viewer types `:deer: register`.
+**Then** friendly temporary-unavailable response is used; after recovery, no partial row exists and retry can succeed.
 
-| # | Condition |
-|---|----------|
-| 1 | Go backend running, database empty |
-
-**Test Steps:**
-
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | `POST /api/v1/subscribers` with `{"youtube_handle": "@viewer1", "display_name": "Viewer One", "subscribed_at": "2026-07-29T10:00:00Z", "source": "streamer_bot"}` | `201 Created` |
-| 2 | Verify response body | `data.id` is valid UUID, all fields match input |
-| 3 | Verify response headers | `Content-Type: application/json` |
-
----
-
-#### TC-008: Duplicate Handle — 200 OK Upsert
+### TC-M008 — Registration API creates member
 
 | Field | Value |
 |-------|-------|
-| **ID** | TC-008 |
-| **Title** | Duplicate youtube_handle returns 200, updates existing record |
-| **Priority** | 🔴 Critical |
-| **Type** | Integration |
-| **Automated** | Yes |
-| **Requirement** | AC-002b → US-002 |
+| Requirement | AC-002a → US-002 |
+| Priority | 🔴 |
+| Type | Integration |
+| Automated | Yes |
 
-**Preconditions:**
+**Given** valid user ID and handle.
+**When** POST endpoint is called.
+**Then** `201 Created` returns new active member with 0 points.
 
-| # | Condition |
-|---|----------|
-| 1 | Database has subscriber with `youtube_handle = 'viewer1'` |
-
-**Test Steps:**
-
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | `POST /api/v1/subscribers` with same `youtube_handle: "@viewer1"`, different `display_name: "Updated Name"` | `200 OK` |
-| 2 | Verify response | `meta.upserted = true` |
-| 3 | Query DB | `display_name` updated to `"Updated Name"`, only 1 record exists |
-
----
-
-#### TC-009: Missing Required Field — 400 Validation Error
+### TC-M009 — Registration API same-handle repeat
 
 | Field | Value |
 |-------|-------|
-| **ID** | TC-009 |
-| **Title** | Missing youtube_handle returns 400 with field-level error |
-| **Priority** | 🔴 Critical |
-| **Type** | Integration |
-| **Automated** | Yes |
-| **Requirement** | AC-002c → US-002 |
+| Requirement | AC-002b → US-002 |
+| Priority | 🔴 |
+| Type | Integration |
+| Automated | Yes |
 
-**Test Steps:**
+**Given** same active user/handle exists.
+**When** POST endpoint is called again.
+**Then** `200 OK` already-registered response and no data mutation.
 
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | `POST /api/v1/subscribers` with `{"display_name": "Viewer One"}` (no youtube_handle) | `400 Bad Request` |
-| 2 | Verify response body | `error.code = "VALIDATION_ERROR"`, `error.details` contains `field: "youtube_handle"` |
-
----
-
-#### TC-010: Empty Payload — 400 Validation Error
+### TC-M010 — Registration API handle-change transaction
 
 | Field | Value |
 |-------|-------|
-| **ID** | TC-010 |
-| **Title** | Empty payload returns 400 with errors for all required fields |
-| **Priority** | 🟡 High |
-| **Type** | Integration |
-| **Automated** | Yes |
-| **Requirement** | AC-002d → US-002 |
+| Requirement | AC-002c → US-002 |
+| Priority | 🔴 |
+| Type | Integration |
+| Automated | Yes |
 
-**Test Steps:**
+**Given** same user has an active old-handle row.
+**When** new handle registration is processed.
+**Then** deactivation and new active 0-point creation are atomic; a simulated failure leaves the pre-request state intact.
 
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | `POST /api/v1/subscribers` with `{}` | `400 Bad Request` |
-| 2 | Verify response body | `error.details` lists all 4 required fields |
-
----
-
-#### TC-011: Invalid Timestamp — 400 Validation Error
+### TC-M011 — Registration API active-handle conflict
 
 | Field | Value |
 |-------|-------|
-| **ID** | TC-011 |
-| **Title** | Non-ISO-8601 subscribed_at returns 400 |
-| **Priority** | 🟡 High |
-| **Type** | Integration |
-| **Automated** | Yes |
-| **Requirement** | AC-002e → US-002 |
+| Requirement | AC-002d → US-002 |
+| Priority | 🔴 |
+| Type | Integration |
+| Automated | Yes |
 
-**Test Steps:**
+**Given** another active user owns normalized handle.
+**When** endpoint receives conflicting registration.
+**Then** `409 Conflict` and no mutation.
 
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | `POST /api/v1/subscribers` with `subscribed_at: "not-a-date"` | `400 Bad Request` |
-| 2 | Verify error message | Contains "subscribed_at must be ISO 8601" or equivalent |
-
----
-
-### 4.3 US-003: YouTube API Polling Scheduler
-
----
-
-#### TC-012: Polling — New Subscribers Found
+### TC-M012 — Registration API field validation
 
 | Field | Value |
 |-------|-------|
-| **ID** | TC-012 |
-| **Title** | Polling scheduler fetches and creates new subscriber records |
-| **Priority** | 🔴 Critical |
-| **Type** | Integration |
-| **Automated** | Yes |
-| **Requirement** | AC-003a → US-003 |
+| Requirement | AC-002e → US-002 |
+| Priority | 🔴 |
+| Type | Integration |
+| Automated | Yes |
 
-**Preconditions:**
+**Given** missing/empty/invalid user ID or handle.
+**When** endpoint validates request.
+**Then** `400` with field-level errors and no row.
 
-| # | Condition |
-|---|----------|
-| 1 | YouTube API mock returns 5 new subscribers |
-| 2 | Database is empty |
-
-**Test Steps:**
-
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | Trigger polling scheduler | Scheduler calls `GET /youtube/v3/subscriptions` |
-| 2 | Query DB: `SELECT COUNT(*) FROM subscribers` | Count = 5 |
-| 3 | Verify all records have `source = 'youtube_api'` | True |
-
----
-
-#### TC-013: Polling — Upsert Existing Subscribers
+### TC-M013 — Handle normalization
 
 | Field | Value |
 |-------|-------|
-| **ID** | TC-013 |
-| **Title** | Polling updates existing records, creates new ones — no duplicates |
-| **Priority** | 🔴 Critical |
-| **Type** | Integration |
-| **Automated** | Yes |
-| **Requirement** | AC-003b → US-003 |
+| Requirement | AC-002f → US-002 |
+| Priority | 🟡 |
+| Type | Unit |
+| Automated | Yes |
 
-**Preconditions:**
-
-| # | Condition |
-|---|----------|
-| 1 | Database has 2 subscribers: `@viewer1`, `@viewer2` |
-| 2 | YouTube API mock returns 3 subscribers: `@viewer1`, `@viewer2`, `@viewer3` |
-
-**Test Steps:**
-
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | Trigger polling scheduler | Processes 3 subscribers |
-| 2 | Query DB: `SELECT COUNT(*) FROM subscribers` | Count = 3 (2 updated, 1 new) |
-| 3 | Verify `@viewer3` exists with `source = 'youtube_api'` | True |
+**Given** input `  @DeEr123  `.
+**When** normalization runs.
+**Then** stored/matched value is `deer123`.
 
 ---
 
-#### TC-014: Polling — Preserve Earliest Timestamp
+## 5. E-02 — Bot Commands
 
-| Field | Value |
-|-------|-------|
-| **ID** | TC-014 |
-| **Title** | Polling does not overwrite earlier streamer.bot timestamp |
-| **Priority** | 🔴 Critical |
-| **Type** | Integration |
-| **Automated** | Yes |
-| **Requirement** | AC-003c → US-003 |
+### TC-M014 — Donate command happy path
 
-**Preconditions:**
+**Requirement:** AC-010a → US-010 | **Priority:** 🔴 | **Type:** Manual
 
-| # | Condition |
-|---|----------|
-| 1 | `@viewer1` captured via streamer.bot at `10:00:00Z` |
+**Given** streamer.bot is connected.
+**When** viewer types `:deer: donate`.
+**Then** chat response contains `https://easydonate.app/deerngo0` within 2 seconds.
 
-**Test Steps:**
+### TC-M015 — Donate command with bot offline
 
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | YouTube API mock returns `@viewer1` with `subscribed_at: "10:15:00Z"` | Polling processes |
-| 2 | Query DB: `SELECT subscribed_at FROM subscribers WHERE youtube_handle = 'viewer1'` | `10:00:00Z` preserved |
+**Requirement:** AC-010b → US-010 | **Priority:** 🔴 | **Type:** Manual
 
----
+**Given** streamer.bot is offline.
+**When** command is typed.
+**Then** no bot response is expected.
 
-#### TC-015: Polling — No New Subscribers
+### TC-M016 — Concurrent donate commands
 
-| Field | Value |
-|-------|-------|
-| **ID** | TC-015 |
-| **Title** | Polling with 0 new subscribers completes without error |
-| **Priority** | 🟡 High |
-| **Type** | Integration |
-| **Automated** | Yes |
-| **Requirement** | AC-003d → US-003 |
+**Requirement:** AC-010c → US-010 | **Priority:** 🟡 | **Type:** System
 
-**Test Steps:**
+**Given** five command messages are submitted concurrently.
+**When** streamer.bot processes them.
+**Then** five responses are observed.
 
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | YouTube API mock returns empty list | Polling completes |
-| 2 | Verify no error logs | Clean completion |
+### TC-M017 — Donate command extra text
 
----
+**Requirement:** AC-010d → US-010 | **Priority:** 🟡 | **Type:** System
 
-#### TC-016: Polling — YouTube API 403 Quota Exceeded
+**Given** message starts with `:deer: donate` and includes extra text.
+**When** command matcher runs.
+**Then** link response is sent.
 
-| Field | Value |
-|-------|-------|
-| **ID** | TC-016 |
-| **Title** | 403 quota exceeded — scheduler logs error, skips next cycle |
-| **Priority** | 🔴 Critical |
-| **Type** | Integration |
-| **Automated** | Yes |
-| **Requirement** | AC-003e → US-003 |
+### TC-M018 — Public member exact points
 
-**Test Steps:**
+**Requirement:** AC-011a → US-011 | **Priority:** 🔴 | **Type:** Integration
 
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | YouTube API mock returns 403 `quotaExceeded` | Scheduler detects error |
-| 2 | Verify error logged | Log contains quota exceeded message |
-| 3 | Verify next poll cycle skipped | No API call on next scheduled trigger |
+**Given** active public member has 500 points.
+**When** points API is queried using actual user ID.
+**Then** exact 500 response is returned and streamer.bot posts exact amount.
 
----
+### TC-M019 — Public member zero points
 
-#### TC-017: Polling — YouTube API 401 Token Expired
+**Requirement:** AC-011b → US-011 | **Priority:** 🔴 | **Type:** Integration
 
-| Field | Value |
-|-------|-------|
-| **ID** | TC-017 |
-| **Title** | 401 unauthorized — logs error, alerts operator |
-| **Priority** | 🔴 Critical |
-| **Type** | Integration |
-| **Automated** | Yes |
-| **Requirement** | AC-003f → US-003 |
+**Given** active public member has 0 points.
+**When** point command runs.
+**Then** chat shows 0 and donation prompt.
 
-**Test Steps:**
+### TC-M020 — Private member band
 
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | YouTube API mock returns 401 | Scheduler detects error |
-| 2 | Verify error logged | Log contains token expired / unauthorized message |
-| 3 | Verify operator alert mechanism triggered | Alert sent (log entry or notification) |
+**Requirement:** AC-011c → US-011 | **Priority:** 🔴 | **Type:** Integration
 
----
+**Given** active private member has 563 points.
+**When** point command runs.
+**Then** response contains 500–600 and not 563.
 
-#### TC-018: Polling — 15-Minute Interval
+### TC-M021 — Private member zero band
 
-| Field | Value |
-|-------|-------|
-| **ID** | TC-018 |
-| **Title** | Polling triggers automatically every 15 minutes |
-| **Priority** | 🔴 Critical |
-| **Type** | Integration |
-| **Automated** | Yes |
-| **Requirement** | AC-003g → US-003 |
+**Requirement:** AC-011d → US-011 | **Priority:** 🔴 | **Type:** Integration
 
-**Test Steps:**
+**Given** active private member has 0.
+**When** point command runs.
+**Then** response is `between 0–100`.
 
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | Start backend, note time T0 | Scheduler starts |
-| 2 | Wait 15 minutes (or mock time) | Scheduler triggers at T0+15m |
-| 3 | Verify API call made at T0+15m | YouTube API called |
-| 4 | Verify next trigger at T0+30m | YouTube API called again |
+### TC-M022 — Unregistered point query
 
----
+**Requirement:** AC-011e → US-011 | **Priority:** 🔴 | **Type:** Integration
 
-## 5. Test Cases — E-02: Bot Commands
+**Given** no active member exists.
+**When** point endpoint is queried.
+**Then** `MEMBER_NOT_REGISTERED` maps to `Use :deer: register first`.
 
-### 5.1 US-010: Donate Command
+### TC-M023 — Point query backend failure
 
----
+**Requirement:** AC-011f → US-011 | **Priority:** 🔴 | **Type:** Manual
 
-#### TC-019: Donate Command — Happy Path
+**Given** backend cannot be reached.
+**When** streamer.bot calls points API.
+**Then** friendly temporary-unavailable message appears and no internal details leak.
 
-| Field | Value |
-|-------|-------|
-| **ID** | TC-019 |
-| **Title** | `:deer: donate` in chat → bot responds with donation link |
-| **Priority** | 🔴 Critical |
-| **Type** | Manual |
-| **Automated** | No |
-| **Requirement** | AC-010a → US-010 |
+### TC-M024 — Register streamer.bot action identity mapping
 
-**Preconditions:**
+**Requirement:** AC-012a → US-012 | **Priority:** 🔴 | **Type:** Manual
 
-| # | Condition |
-|---|----------|
-| 1 | streamer.bot is running with Donate action configured |
-| 2 | Connected to @Deer_NGO's YouTube live chat |
+Verify action maps actual user ID/current handle and does not map message-supplied handle.
 
-**Test Steps:**
+### TC-M025 — Public visibility action
 
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | Type `:deer: donate` in YouTube live chat | Bot responds within 2 seconds |
-| 2 | Verify response text | `"🦌 Donate here: https://easydonate.app/deerngo0"` |
+**Requirement:** AC-012b → US-012 | **Priority:** 🔴 | **Type:** Manual
+
+Verify `:deer: public` updates active member visibility and confirms.
+
+### TC-M026 — Private visibility action
+
+**Requirement:** AC-012c → US-012 | **Priority:** 🔴 | **Type:** Manual
+
+Verify `:deer: private` updates active member visibility and confirms.
+
+### TC-M027 — Donate action mapping
+
+**Requirement:** AC-012d → US-012 | **Priority:** 🔴 | **Type:** Manual
+
+Verify Donate action posts configured EasyDonate URL.
+
+### TC-M028 — Point action mapping
+
+**Requirement:** AC-012e → US-012 | **Priority:** 🔴 | **Type:** Manual
+
+Verify Point action posts exact or banded response from API.
+
+### TC-M029 — Action API failure fallback
+
+**Requirement:** AC-012f → US-012 | **Priority:** 🔴 | **Type:** Manual
+
+Stop backend; verify friendly fallback and no action crash.
+
+### TC-M030 — Safe streamer.bot action logs
+
+**Requirement:** AC-012g → US-012 | **Priority:** 🟡 | **Type:** System
+
+Inspect logs; verify trigger/time/result present and no keys/path tokens/donor raw payloads.
 
 ---
 
-#### TC-020: Donate Command — Bot Offline
+## 6. E-03 — Points Engine
 
-| Field | Value |
-|-------|-------|
-| **ID** | TC-020 |
-| **Title** | Bot offline — no response, no error spam |
-| **Priority** | 🔴 Critical |
-| **Type** | Manual |
-| **Automated** | No |
-| **Requirement** | AC-010b → US-010 |
+### TC-M031 — Valid EasyDonate webhook stored
 
-**Test Steps:**
+**Requirement:** AC-020a → US-020 | **Priority:** 🔴 | **Type:** Integration
 
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | Stop streamer.bot | Bot disconnected |
-| 2 | Type `:deer: donate` in chat | No bot response (graceful degradation) |
-| 3 | Verify no error messages in chat | Clean — no error spam |
+**Given** provider-shaped valid payload with `referenceNo`, donor, amount, channel, message, and time.
+**When** webhook route receives it with valid path token.
+**Then** donation is stored privately with `source=webhook` and pending status.
 
----
+### TC-M032 — Duplicate reference is idempotent
 
-#### TC-021: Donate Command — Multiple Simultaneous
+**Requirement:** AC-020b → US-020 | **Priority:** 🔴 | **Type:** Integration
 
-| Field | Value |
-|-------|-------|
-| **ID** | TC-021 |
-| **Title** | 5 simultaneous donate commands → 5 responses |
-| **Priority** | 🟡 High |
-| **Type** | Manual |
-| **Automated** | No |
-| **Requirement** | AC-010c → US-010 |
+Send same `referenceNo` twice, including concurrent requests. Verify one donation and one possible point application only.
 
-**Test Steps:**
+### TC-M033 — API fallback imports donations
 
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | 5 viewers type `:deer: donate` at the same time | Bot sends 5 responses (one per viewer) |
+**Requirement:** AC-020c → US-020 | **Priority:** 🔴 | **Type:** Integration
 
----
+Mock EasyDonate API with Bearer credential and new records. Verify `source=api_poll` and no secret in logs.
 
-#### TC-022: Donate Command — Extra Text After Command
+### TC-M034 — EasyDonate 429 backoff
 
-| Field | Value |
-|-------|-------|
-| **ID** | TC-022 |
-| **Title** | `:deer: donate please help` still triggers response |
-| **Priority** | 🟡 High |
-| **Type** | Manual |
-| **Automated** | No |
-| **Requirement** | AC-010d → US-010 |
+**Requirement:** AC-020d → US-020 | **Priority:** 🔴 | **Type:** Integration
 
-**Test Steps:**
+Return 429 + Retry-After. Verify backoff and no tight retry loop.
 
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | Type `:deer: donate please help` in chat | Bot detects `:deer: donate` prefix, responds with donation link |
+### TC-M035 — Empty EasyDonate sync
 
----
+**Requirement:** AC-020e → US-020 | **Priority:** 🟡 | **Type:** Unit
 
-### 5.2 US-011: Point Command
+Return empty list. Verify no inserts and successful cycle.
 
----
+### TC-M036 — EasyDonate unavailable retry
 
-#### TC-023: Point Command — Viewer Has Points
+**Requirement:** AC-020f → US-020 | **Priority:** 🟡 | **Type:** Integration
 
-| Field | Value |
-|-------|-------|
-| **ID** | TC-023 |
-| **Title** | `:deer: point` for viewer with 500 points → displays balance |
-| **Priority** | 🔴 Critical |
-| **Type** | Manual |
-| **Automated** | No |
-| **Requirement** | AC-011a → US-011 |
+Return provider/network failure. Verify safe log and next cycle retry.
 
-**Preconditions:**
+### TC-M037 — Invalid webhook rejected
 
-| # | Condition |
-|---|----------|
-| 1 | `@viewer1` has 500 points in `viewer_points` table |
+**Requirement:** AC-020g → US-020 | **Priority:** 🔴 | **Type:** Integration
 
-**Test Steps:**
+Use invalid path token and invalid amount/missing reference. Verify rejection and no donation row.
 
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | Viewer `@viewer1` types `:deer: point` in chat | Bot responds within 2 seconds |
-| 2 | Verify response | `"🦌 @viewer1 has 500 points!"` |
+### TC-M038 — Exact normalized match
 
----
+**Requirement:** AC-021a → US-021 | **Priority:** 🔴 | **Type:** Unit
 
-#### TC-024: Point Command — Viewer Has 0 Points
+Active handle `deer123`, donor `@Deer123`. Verify match.
 
-| Field | Value |
-|-------|-------|
-| **ID** | TC-024 |
-| **Title** | `:deer: point` for new viewer → shows 0 points with donate prompt |
-| **Priority** | 🔴 Critical |
-| **Type** | Manual |
-| **Automated** | No |
-| **Requirement** | AC-011b → US-011 |
+### TC-M039 — Harmless formatting differences
 
-**Test Steps:**
+**Requirement:** AC-021b → US-021 | **Priority:** 🔴 | **Type:** Unit
 
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | Viewer `@newviewer` types `:deer: point` | Bot responds |
-| 2 | Verify response | `"🦌 @newviewer has 0 points. Donate to earn points!"` |
+Test whitespace/case/leading `@`; verify equal. Test punctuation/hyphen; verify not equal.
 
----
+### TC-M040 — Inactive member not matched
 
-#### TC-025: Point Command — Backend API Down
+**Requirement:** AC-021c → US-021 | **Priority:** 🔴 | **Type:** Integration
 
-| Field | Value |
-|-------|-------|
-| **ID** | TC-025 |
-| **Title** | Backend down → bot shows friendly error |
-| **Priority** | 🔴 Critical |
-| **Type** | Manual |
-| **Automated** | No |
-| **Requirement** | AC-011c → US-011 |
+Inactive member owns matching old handle. Verify donation remains uncredited.
 
-**Test Steps:**
+### TC-M041 — Before-registration cutoff
 
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | Stop Go backend | API unavailable |
-| 2 | Viewer types `:deer: point` | Bot responds |
-| 3 | Verify response | `"🦌 Points system is temporarily unavailable"` |
+**Requirement:** AC-021d → US-021 | **Priority:** 🔴 | **Type:** Integration
+
+Donation timestamp before registration. Verify `not_eligible`, zero point increment.
+
+### TC-M042 — No active match remains private/uncredited
+
+**Requirement:** AC-021e → US-021 | **Priority:** 🟡 | **Type:** Integration
+
+Unknown donor name. Verify unmatched/private record and zero points.
+
+### TC-M043 — Raw donor data excluded publicly
+
+**Requirement:** AC-021f → US-021 | **Priority:** 🔴 | **Type:** System
+
+Seed real-looking synthetic donor name/message; inspect scoreboard and public API; verify neither appears.
+
+### TC-M044 — Eligible donation applies once
+
+**Requirement:** AC-021g → US-021 | **Priority:** 🔴 | **Type:** Integration
+
+Eligible donation amount 100; process matcher twice/concurrently; verify member points +100 exactly once and donation marker set.
+
+### TC-M045 — Public exact total API
+
+**Requirement:** AC-022a → US-022 | **Priority:** 🔴 | **Type:** Integration
+
+Active public member with eligible total 500 returns exact 500.
+
+### TC-M046 — Active member no eligible donations
+
+**Requirement:** AC-022b → US-022 | **Priority:** 🔴 | **Type:** Integration
+
+Active member with no eligible donation returns 0.
+
+### TC-M047 — Point query by actual user ID
+
+**Requirement:** AC-022c → US-022 | **Priority:** 🔴 | **Type:** Integration
+
+Call user-ID route and verify active member response.
+
+### TC-M048 — No active member response
+
+**Requirement:** AC-022d → US-022 | **Priority:** 🔴 | **Type:** Integration
+
+Inactive-only or unknown user ID returns `MEMBER_NOT_REGISTERED`.
+
+### TC-M049 — Private member only exposes band
+
+**Requirement:** AC-022e → US-022 | **Priority:** 🔴 | **Type:** Integration
+
+Private 563 response contains lower/upper only and not `total_points`.
+
+### TC-M050 — Visibility affects response without points mutation
+
+**Requirement:** AC-022f → US-022 | **Priority:** 🔴 | **Type:** Integration
+
+Toggle visibility, query response changes exact/range while total remains 563.
 
 ---
 
-#### TC-026: Point Command — API Timeout
+## 7. E-04 — Scoreboard
 
-| Field | Value |
-|-------|-------|
-| **ID** | TC-026 |
-| **Title** | API takes >5s → bot shows timeout error |
-| **Priority** | 🟡 High |
-| **Type** | Manual |
-| **Automated** | No |
-| **Requirement** | AC-011d → US-011 |
+### TC-M051 — Public contributors ranked
 
-**Test Steps:**
+**Requirement:** AC-030a → US-030 | **Priority:** 🟡 | **Type:** System
 
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | Configure API mock to delay 6 seconds | Slow response |
-| 2 | Viewer types `:deer: point` | Bot waits, then shows timeout error after 5 seconds |
+Seed public active contributors; page shows normalized handles and descending points.
 
----
+### TC-M052 — Private member hidden
 
-### 5.3 US-012: Streamer.bot Action Configuration
+**Requirement:** AC-030b → US-030 | **Priority:** 🟡 | **Type:** System
 
----
+Private member has points; page/API excludes it.
 
-#### TC-027: Donate Action — Triggers on Command
+### TC-M053 — Inactive member hidden
 
-| Field | Value |
-|-------|-------|
-| **ID** | TC-027 |
-| **Title** | Donate action fires when chat contains `:deer: donate` |
-| **Priority** | 🔴 Critical |
-| **Type** | Manual |
-| **Automated** | No |
-| **Requirement** | AC-012a → US-012 |
+**Requirement:** AC-030c → US-030 | **Priority:** 🟡 | **Type:** System
 
-**Test Steps:**
+Inactive member has points; page/API excludes it.
 
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | Verify streamer.bot action "Donate" is configured | Action exists with chat trigger `:deer: donate` |
-| 2 | Send `:deer: donate` in chat | Action fires, donation link posted |
+### TC-M054 — Zero-point empty state
 
----
+**Requirement:** AC-030d → US-030 | **Priority:** 🟡 | **Type:** Manual
 
-#### TC-028: Point Action — Triggers on Command
+Only zero-point active public members; page shows `No contributors yet. Be the first!`.
 
-| Field | Value |
-|-------|-------|
-| **ID** | TC-028 |
-| **Title** | Point action fires, calls Go API, posts response |
-| **Priority** | 🔴 Critical |
-| **Type** | Manual |
-| **Automated** | No |
-| **Requirement** | AC-012b → US-012 |
+### TC-M055 — Freshness after new donation
 
-**Test Steps:**
+**Requirement:** AC-030e → US-030 | **Priority:** 🟡 | **Type:** E2E
 
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | Verify streamer.bot action "Point" configured | Action exists with HTTP Request sub-action to `GET /api/v1/points/{handle}` |
-| 2 | Send `:deer: point` in chat | Action fires, API called, point response posted |
+Process donation and refresh page; verify update within target 60 seconds under test conditions.
 
----
+### TC-M056 — Scoreboard backend unavailable
 
-#### TC-029: Point Action — API Error Handling
+**Requirement:** AC-030f → US-030 | **Priority:** 🟡 | **Type:** Manual
 
-| Field | Value |
-|-------|-------|
-| **ID** | TC-029 |
-| **Title** | Go backend returns 500 → streamer.bot sends fallback message |
-| **Priority** | 🔴 Critical |
-| **Type** | Manual |
-| **Automated** | No |
-| **Requirement** | AC-012c → US-012 |
+Stop API; page shows `Scoreboard temporarily unavailable`.
 
-**Test Steps:**
+### TC-M057 — Scoreboard API eligible projection
 
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | Mock Go backend to return 500 | API error |
-| 2 | Send `:deer: point` in chat | Action fires, receives error |
-| 3 | Verify chat response | Fallback error message (not a crash) |
+**Requirement:** AC-031a → US-031 | **Priority:** 🟡 | **Type:** Integration
+
+Verify 200 response includes rank/handle/points sorted descending.
+
+### TC-M058 — Empty scoreboard API
+
+**Requirement:** AC-031b → US-031 | **Priority:** 🟡 | **Type:** Integration
+
+No eligible contributors; verify 200 empty array.
+
+### TC-M059 — Status/visibility/points filter
+
+**Requirement:** AC-031c → US-031 | **Priority:** 🟡 | **Type:** Integration
+
+Seed private, inactive, and zero-point rows; verify all excluded.
+
+### TC-M060 — First pagination page
+
+**Requirement:** AC-031d → US-031 | **Priority:** 🟡 | **Type:** Integration
+
+Seed >50 eligible rows; request page 1 limit 50; verify rows 1–50 and metadata.
+
+### TC-M061 — Second pagination page
+
+**Requirement:** AC-031e → US-031 | **Priority:** 🟡 | **Type:** Integration
+
+Request page 2 limit 50; verify rows 51–100 without duplicates.
+
+### TC-M062 — Public response data allowlist
+
+**Requirement:** AC-031f → US-031 | **Priority:** 🟡 | **Type:** Integration
+
+Inspect JSON keys; allow only rank, normalized handle, total points, and documented pagination metadata; no user ID, display name, donor data, messages, private/inactive data.
 
 ---
 
-#### TC-030: Action Logs — Execution Logged
+## 8. Execution Record
 
-| Field | Value |
-|-------|-------|
-| **ID** | TC-030 |
-| **Title** | Action execution logged in streamer.bot |
-| **Priority** | 🟡 High |
-| **Type** | Manual |
-| **Automated** | No |
-| **Requirement** | AC-012d → US-012 |
+| Test Case Range | Executed On | Passed | Failed | Blocked | Tester |
+|-----------------|-------------|:------:|:------:|:-------:|--------|
+| TC-M001–M062 | — | — | — | — | QA |
 
-**Test Steps:**
-
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | Trigger any action (`:deer: donate` or `:deer: point`) | Action fires |
-| 2 | Check streamer.bot logs | Log entry with timestamp, trigger, result |
-
----
-
-## 6. Test Cases — E-03: Points Engine
-
-### 6.1 US-020: EasyDonate Donation Sync
-
----
-
-#### TC-031: Donation Sync — New Donations Found
-
-| Field | Value |
-|-------|-------|
-| **ID** | TC-031 |
-| **Title** | Sync fetches 3 new donations from EasyDonate API |
-| **Priority** | 🔴 Critical |
-| **Type** | Integration |
-| **Automated** | Yes |
-| **Requirement** | AC-020a → US-020 |
-
-**Preconditions:**
-
-| # | Condition |
-|---|----------|
-| 1 | EasyDonate API mock returns 3 donations |
-| 2 | Database donations table is empty |
-
-**Test Steps:**
-
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | Trigger donation sync | Sync calls EasyDonate API |
-| 2 | Query DB: `SELECT COUNT(*) FROM donations` | Count = 3 |
-| 3 | Verify fields | Each record has `donor_name`, `amount_thb`, `donation_time`, `easydonate_id` |
-
----
-
-#### TC-032: Donation Sync — Idempotent (No Duplicate)
-
-| Field | Value |
-|-------|-------|
-| **ID** | TC-032 |
-| **Title** | Duplicate easydonate_id skipped — no new record created |
-| **Priority** | 🔴 Critical |
-| **Type** | Integration |
-| **Automated** | Yes |
-| **Requirement** | AC-020b → US-020 |
-
-**Preconditions:**
-
-| # | Condition |
-|---|----------|
-| 1 | Database has donation with `easydonate_id = 'ed-123'` |
-
-**Test Steps:**
-
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | EasyDonate API mock returns donation with `easydonate_id: "ed-123"` | Sync processes |
-| 2 | Query DB: `SELECT COUNT(*) FROM donations WHERE easydonate_id = 'ed-123'` | Count = 1 (no duplicate) |
-
----
-
-#### TC-033: Donation Sync — Rate Limit (429) Backoff
-
-| Field | Value |
-|-------|-------|
-| **ID** | TC-033 |
-| **Title** | 429 response — sync backs off and retries after Retry-After |
-| **Priority** | 🔴 Critical |
-| **Type** | Integration |
-| **Automated** | Yes |
-| **Requirement** | AC-020c → US-020 |
-
-**Test Steps:**
-
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | EasyDonate API mock returns 429 + `Retry-After: 60` | Sync detects rate limit |
-| 2 | Verify sync pauses | Waits 60 seconds before retry |
-| 3 | After retry (mock returns 200) | Donations processed |
-
----
-
-#### TC-034: Donation Sync — Empty Response
-
-| Field | Value |
-|-------|-------|
-| **ID** | TC-034 |
-| **Title** | 0 donations returned — completes without error |
-| **Priority** | 🟡 High |
-| **Type** | Integration |
-| **Automated** | Yes |
-| **Requirement** | AC-020d → US-020 |
-
-**Test Steps:**
-
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | EasyDonate API mock returns empty array | Sync completes |
-| 2 | Verify no error logs | Clean completion |
-
----
-
-#### TC-035: Donation Sync — API Unavailable
-
-| Field | Value |
-|-------|-------|
-| **ID** | TC-035 |
-| **Title** | EasyDonate API down — logs error, retries next cycle |
-| **Priority** | 🟡 High |
-| **Type** | Integration |
-| **Automated** | Yes |
-| **Requirement** | AC-020e → US-020 |
-
-**Test Steps:**
-
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | EasyDonate API mock returns 500 | Sync detects error |
-| 2 | Verify error logged | Log contains API failure message |
-| 3 | Verify next sync cycle runs | Retries on next scheduled trigger |
-
----
-
-### 6.2 US-021: Name Matching Engine
-
----
-
-#### TC-036: Matching — Exact Match (Case-Insensitive)
-
-| Field | Value |
-|-------|-------|
-| **ID** | TC-036 |
-| **Title** | Donation from "deer123" matches subscriber "@deer123" |
-| **Priority** | 🔴 Critical |
-| **Type** | Unit |
-| **Automated** | Yes |
-| **Requirement** | AC-021a → US-021 |
-
-**Preconditions:**
-
-| # | Condition |
-|---|----------|
-| 1 | Subscriber `@deer123` exists |
-| 2 | Donation from `donor_name = "deer123"`, `match_status = 'pending'` |
-
-**Test Steps:**
-
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | Run matching engine | Processes pending donation |
-| 2 | Query donation record | `match_status = 'matched'`, `matched_handle = '@deer123'` |
-| 3 | Verify match_score | ≥ 0.7 |
-
----
-
-#### TC-037: Matching — Fuzzy Match (Strip @)
-
-| Field | Value |
-|-------|-------|
-| **ID** | TC-037 |
-| **Title** | Donation from "@viewer1" matches subscriber "viewer1" |
-| **Priority** | 🔴 Critical |
-| **Type** | Unit |
-| **Automated** | Yes |
-| **Requirement** | AC-021b → US-021 |
-
-**Test Steps:**
-
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | Subscriber `viewer1` exists, donation `@viewer1` | Matching runs |
-| 2 | After normalization (strip @, lowercase) | Both become `viewer1` |
-| 3 | Verify match | `match_status = 'matched'`, `matched_handle = '@viewer1'` |
-
----
-
-#### TC-038: Matching — Anonymous Donation
-
-| Field | Value |
-|-------|-------|
-| **ID** | TC-038 |
-| **Title** | "anonymous" donor → unmatched, no points awarded |
-| **Priority** | 🔴 Critical |
-| **Type** | Unit |
-| **Automated** | Yes |
-| **Requirement** | AC-021c → US-021 |
-
-**Test Steps:**
-
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | Donation with `donor_name = "anonymous"` | Matching runs |
-| 2 | Verify donation record | `match_status = 'unmatched'`, `matched_handle = NULL` |
-| 3 | Verify no points awarded | `viewer_points` unchanged |
-
----
-
-#### TC-039: Matching — Empty Donor Name
-
-| Field | Value |
-|-------|-------|
-| **ID** | TC-039 |
-| **Title** | Empty donor_name → unmatched |
-| **Priority** | 🔴 Critical |
-| **Type** | Unit |
-| **Automated** | Yes |
-| **Requirement** | AC-021d → US-021 |
-
-**Test Steps:**
-
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | Donation with `donor_name = ""` | Matching runs |
-| 2 | Verify | `match_status = 'unmatched'` |
-
----
-
-#### TC-040: Matching — Multiple Possible Matches
-
-| Field | Value |
-|-------|-------|
-| **ID** | TC-040 |
-| **Title** | Multiple similar subscribers → best match selected, flagged for review |
-| **Priority** | 🟡 High |
-| **Type** | Unit |
-| **Automated** | Yes |
-| **Requirement** | AC-021e → US-021 |
-
-**Preconditions:**
-
-| # | Condition |
-|---|----------|
-| 1 | Subscribers: `deer123`, `deer456` |
-| 2 | Donation from `donor_name = "deer"` |
-
-**Test Steps:**
-
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | Run matching engine | Finds 2 matches above 0.7 threshold |
-| 2 | Verify donation record | `match_status = 'manual_review'` |
-| 3 | Verify best match stored | Highest similarity score selected |
-
----
-
-#### TC-041: Matching — No Match Found
-
-| Field | Value |
-|-------|-------|
-| **ID** | TC-041 |
-| **Title** | No close match → unmatched with donor_name preserved |
-| **Priority** | 🟡 High |
-| **Type** | Unit |
-| **Automated** | Yes |
-| **Requirement** | AC-021f → US-021 |
-
-**Test Steps:**
-
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | Donation from `donor_name = "unknown_user"`, no similar subscriber | Matching runs |
-| 2 | Verify | `match_status = 'unmatched'`, `donor_name` preserved for manual review |
-
----
-
-### 6.3 US-022: Point Calculation & Query API
-
----
-
-#### TC-042: Points API — Happy Path (Sum of Donations)
-
-| Field | Value |
-|-------|-------|
-| **ID** | TC-042 |
-| **Title** | Viewer with 3 matched donations (100+200+200 THB) → total_points: 500 |
-| **Priority** | 🔴 Critical |
-| **Type** | Integration |
-| **Automated** | Yes |
-| **Requirement** | AC-022a → US-022 |
-
-**Preconditions:**
-
-| # | Condition |
-|---|----------|
-| 1 | `@viewer1` in `viewer_points` with `total_points = 500` |
-
-**Test Steps:**
-
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | `GET /api/v1/points/viewer1` | `200 OK` |
-| 2 | Verify response | `data.total_points = 500.00`, `data.youtube_handle = "@viewer1"` |
-
----
-
-#### TC-043: Points API — No Donations (0 Points)
-
-| Field | Value |
-|-------|-------|
-| **ID** | TC-043 |
-| **Title** | Viewer with no donations → total_points: 0 |
-| **Priority** | 🔴 Critical |
-| **Type** | Integration |
-| **Automated** | Yes |
-| **Requirement** | AC-022b → US-022 |
-
-**Test Steps:**
-
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | `GET /api/v1/points/newviewer` | `200 OK` |
-| 2 | Verify response | `data.total_points = 0`, `data.donation_count = 0`, `data.last_donation = null` |
-
----
-
-#### TC-044: Points API — Non-Existent Handle
-
-| Field | Value |
-|-------|-------|
-| **ID** | TC-044 |
-| **Title** | Handle not in DB → 200 with 0 points (not 404) |
-| **Priority** | 🔴 Critical |
-| **Type** | Integration |
-| **Automated** | Yes |
-| **Requirement** | AC-022c → US-022 |
-
-**Test Steps:**
-
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | `GET /api/v1/points/doesnotexist` | `200 OK` (NOT 404) |
-| 2 | Verify response | `data.total_points = 0` |
-
----
-
-#### TC-045: Points API — Only Matched Donations Count
-
-| Field | Value |
-|-------|-------|
-| **ID** | TC-045 |
-| **Title** | Unmatched donations excluded from point total |
-| **Priority** | 🔴 Critical |
-| **Type** | Integration |
-| **Automated** | Yes |
-| **Requirement** | AC-022d → US-022 |
-
-**Preconditions:**
-
-| # | Condition |
-|---|----------|
-| 1 | `@viewer1` has 2 matched donations (300 THB) + 1 unmatched (100 THB) |
-
-**Test Steps:**
-
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | `GET /api/v1/points/viewer1` | `200 OK` |
-| 2 | Verify `total_points` | 300 (unmatched 100 THB excluded) |
-
----
-
-#### TC-046: Points API — Case-Insensitive Lookup
-
-| Field | Value |
-|-------|-------|
-| **ID** | TC-046 |
-| **Title** | Stored as "@Viewer1", queried as "viewer1" → correct match |
-| **Priority** | 🟡 High |
-| **Type** | Integration |
-| **Automated** | Yes |
-| **Requirement** | AC-022e → US-022 |
-
-**Test Steps:**
-
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | `GET /api/v1/points/Viewer1` (uppercase) | `200 OK` |
-| 2 | `GET /api/v1/points/viewer1` (lowercase) | `200 OK` with same points |
-| 3 | Both return same `total_points` | Case-insensitive match works |
-
----
-
-## 7. Test Cases — E-04: Web Scoreboard
-
-### 7.1 US-030: Public Scoreboard Page
-
----
-
-#### TC-047: Scoreboard Page — Happy Path
-
-| Field | Value |
-|-------|-------|
-| **ID** | TC-047 |
-| **Title** | Scoreboard displays ranked viewers by points |
-| **Priority** | 🟡 High |
-| **Type** | System |
-| **Automated** | Yes |
-| **Requirement** | AC-030a → US-030 |
-
-**Preconditions:**
-
-| # | Condition |
-|---|----------|
-| 1 | 10 viewers with points in database |
-
-**Test Steps:**
-
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | Visit scoreboard URL | Page loads |
-| 2 | Verify list | Ranked list (highest points first), showing rank, display name, points |
-
----
-
-#### TC-048: Scoreboard Page — Data Freshness
-
-| Field | Value |
-|-------|-------|
-| **ID** | TC-048 |
-| **Title** | New donation processed → scoreboard reflects within 60s |
-| **Priority** | 🟡 High |
-| **Type** | System |
-| **Automated** | Yes |
-| **Requirement** | AC-030b → US-030 |
-
-**Test Steps:**
-
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | Process a new donation (matched) | Points updated in DB |
-| 2 | Refresh scoreboard within 60s | Updated points visible |
-
----
-
-#### TC-049: Scoreboard Page — Responsive Design
-
-| Field | Value |
-|-------|-------|
-| **ID** | TC-049 |
-| **Title** | Scoreboard renders correctly on mobile |
-| **Priority** | 🟡 High |
-| **Type** | Manual |
-| **Automated** | No |
-| **Requirement** | AC-030c → US-030 |
-
-**Test Steps:**
-
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | Open scoreboard on mobile device (or browser DevTools mobile view) | Page loads |
-| 2 | Verify layout adapts | No horizontal scroll, text readable, list usable |
-
----
-
-#### TC-050: Scoreboard Page — Backend Down
-
-| Field | Value |
-|-------|-------|
-| **ID** | TC-050 |
-| **Title** | Backend down → friendly error message displayed |
-| **Priority** | 🟡 High |
-| **Type** | System |
-| **Automated** | Yes |
-| **Requirement** | AC-030d → US-030 |
-
-**Test Steps:**
-
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | Stop Go backend | API unavailable |
-| 2 | Visit scoreboard | Error message: "Scoreboard temporarily unavailable" |
-
----
-
-#### TC-051: Scoreboard Page — Empty Scoreboard
-
-| Field | Value |
-|-------|-------|
-| **ID** | TC-051 |
-| **Title** | No contributors yet → motivational message |
-| **Priority** | 🟡 High |
-| **Type** | System |
-| **Automated** | Yes |
-| **Requirement** | AC-030e → US-030 |
-
-**Test Steps:**
-
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | Database has 0 viewers with points | Empty state |
-| 2 | Visit scoreboard | Message: "No contributors yet. Be the first!" |
-
----
-
-### 7.2 US-031: Scoreboard API Endpoint
-
----
-
-#### TC-052: Scoreboard API — Happy Path
-
-| Field | Value |
-|-------|-------|
-| **ID** | TC-052 |
-| **Title** | GET /api/v1/scoreboard returns ranked JSON array |
-| **Priority** | 🟡 High |
-| **Type** | Integration |
-| **Automated** | Yes |
-| **Requirement** | AC-031a → US-031 |
-
-**Preconditions:**
-
-| # | Condition |
-|---|----------|
-| 1 | 50 viewers with points in database |
-
-**Test Steps:**
-
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | `GET /api/v1/scoreboard` | `200 OK` |
-| 2 | Verify response | `data` is array sorted by `total_points` descending, each has `rank`, `display_name`, `youtube_handle`, `total_points` |
-| 3 | Verify only viewers with `total_points > 0` | No 0-point viewers |
-
----
-
-#### TC-053: Scoreboard API — Empty Scoreboard
-
-| Field | Value |
-|-------|-------|
-| **ID** | TC-053 |
-| **Title** | No viewers with points → empty array (not error) |
-| **Priority** | 🟡 High |
-| **Type** | Integration |
-| **Automated** | Yes |
-| **Requirement** | AC-031b → US-031 |
-
-**Test Steps:**
-
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | `GET /api/v1/scoreboard` (empty DB) | `200 OK` |
-| 2 | Verify response | `data = []`, `meta.total = 0` |
-
----
-
-#### TC-054: Scoreboard API — 0-Point Viewers Excluded
-
-| Field | Value |
-|-------|-------|
-| **ID** | TC-054 |
-| **Title** | 5 subscribers but only 3 have points → only 3 in response |
-| **Priority** | 🟡 High |
-| **Type** | Integration |
-| **Automated** | Yes |
-| **Requirement** | AC-031c → US-031 |
-
-**Test Steps:**
-
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | `GET /api/v1/scoreboard` | `200 OK` |
-| 2 | Verify `data.length` | 3 (not 5) |
-| 3 | Verify all entries have `total_points > 0` | True |
-
----
-
-#### TC-055: Scoreboard API — Pagination Page 1
-
-| Field | Value |
-|-------|-------|
-| **ID** | TC-055 |
-| **Title** | ?page=1&limit=50 returns first 50 viewers |
-| **Priority** | 🟡 High |
-| **Type** | Integration |
-| **Automated** | Yes |
-| **Requirement** | AC-031d → US-031 |
-
-**Preconditions:**
-
-| # | Condition |
-|---|----------|
-| 1 | 200 viewers with points |
-
-**Test Steps:**
-
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | `GET /api/v1/scoreboard?page=1&limit=50` | `200 OK` |
-| 2 | Verify `data.length` | 50 |
-| 3 | Verify `meta.page = 1`, `meta.hasNext = true` | Pagination metadata correct |
-
----
-
-#### TC-056: Scoreboard API — Pagination Page 2
-
-| Field | Value |
-|-------|-------|
-| **ID** | TC-056 |
-| **Title** | ?page=2&limit=50 returns viewers 51-100 |
-| **Priority** | 🟡 High |
-| **Type** | Integration |
-| **Automated** | Yes |
-| **Requirement** | AC-031e → US-031 |
-
-**Test Steps:**
-
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | `GET /api/v1/scoreboard?page=2&limit=50` | `200 OK` |
-| 2 | Verify `data[0].rank` | 51 (starts from 51st) |
-| 3 | Verify `meta.page = 2`, `meta.hasPrev = true` | Pagination metadata correct |
-
----
-
-### 8. Additional Test Cases — PO Decision Additions
-
-> Test cases added based on PO decisions from MM04 (DEF-S004, DEF-S005).
-
----
-
-#### TC-057: Rate Limiting — Default Tier (100 req/min)
-
-| Field | Value |
-|-------|-------|
-| **ID** | TC-057 |
-| **Title** | Exceeding 100 requests/min returns 429 |
-| **Priority** | 🟡 High |
-| **Type** | Integration |
-| **Automated** | Yes |
-| **Requirement** | API Spec §5 (per PO decision DEF-S004) |
-
-**Preconditions:**
-
-| # | Condition |
-|---|----------|
-| 1 | Go backend running with Fiber rate limiter middleware |
-| 2 | Client IP not in any special tier |
-
-**Test Steps:**
-
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | Send 100 requests to `GET /api/v1/points/testviewer` within 1 minute | All 100 return `200 OK` |
-| 2 | Send 101st request within the same minute | `429 Too Many Requests` |
-| 3 | Verify response body | `error.code = "RATE_LIMITED"` |
-| 4 | Wait for rate limit window to reset | Next request returns `200 OK` |
-
----
-
-#### TC-058: Rate Limiting — Webhook Tier (200 req/min)
-
-| Field | Value |
-|-------|-------|
-| **ID** | TC-058 |
-| **Title** | Webhook endpoint allows 200 req/min before 429 |
-| **Priority** | 🟡 High |
-| **Type** | Integration |
-| **Automated** | Yes |
-| **Requirement** | API Spec §5 (per PO decision DEF-S004) |
-
-**Preconditions:**
-
-| # | Condition |
-|---|----------|
-| 1 | Go backend running with webhook-specific rate limiter |
-| 2 | Valid HMAC signature available for test |
-
-**Test Steps:**
-
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | Send 200 requests to `POST /api/v1/webhooks/easydonate` within 1 minute (each with unique `easydonate_id`) | All 200 return `200 OK` |
-| 2 | Send 201st request within the same minute | `429 Too Many Requests` |
-| 3 | Verify response body | `error.code = "RATE_LIMITED"` |
-
----
-
-#### TC-059: HMAC Key Rotation — Procedure Verification
-
-| Field | Value |
-|-------|-------|
-| **ID** | TC-059 |
-| **Title** | HMAC secret key rotation — webhook continues working after key change |
-| **Priority** | 🟡 High |
-| **Type** | Integration |
-| **Automated** | No |
-| **Requirement** | API Spec §4.4, ADR-012 (per PO decision DEF-S005) |
-
-**Preconditions:**
-
-| # | Condition |
-|---|----------|
-| 1 | Go backend running with webhook endpoint |
-| 2 | Current HMAC secret key is configured in env var |
-| 3 | Key rotation procedure documented |
-
-**Test Steps:**
-
-| Step | Action | Expected Result |
-|------|--------|----------------|
-| 1 | Send webhook with valid signature (current key) | `200 OK` — donation processed |
-| 2 | Generate new HMAC secret key | New key created |
-| 3 | Update env var to new key, restart backend | Backend reloaded with new key |
-| 4 | Send webhook with old key signature | `401 Unauthorized` — rejected |
-| 5 | Send webhook with new key signature | `200 OK` — donation processed |
-| 6 | Verify no donations lost during rotation | All test donations accounted for |
-
----
-
-## 9. Test Execution Summary
-
-| Sprint | Executed | Passed | Failed | Blocked | Pass Rate |
-|--------|:-------:|:------:|:------:|:-------:|:---------:|
-| Sprint 1 | — | — | — | — | — |
-| Sprint 2 | — | — | — | — | — |
-| Sprint 3 | — | — | — | — | — |
-| **Total** | **—** | **—** | **—** | **—** | **—** |
-
-> To be filled during test execution.
-
----
-
-## 10. Requirements Traceability Matrix
-
-| AC ID | User Story | Test Case | Test Status |
-|-------|-----------|-----------|------------|
-| AC-001a | US-001 | TC-001 | ⬜ Not Run |
-| AC-001b | US-001 | TC-002 | ⬜ Not Run |
-| AC-001c | US-001 | TC-003 | ⬜ Not Run |
-| AC-001d | US-001 | TC-004 | ⬜ Not Run |
-| AC-001e | US-001 | TC-005 | ⬜ Not Run |
-| AC-001f | US-001 | TC-006 | ⬜ Not Run |
-| AC-002a | US-002 | TC-007 | ⬜ Not Run |
-| AC-002b | US-002 | TC-008 | ⬜ Not Run |
-| AC-002c | US-002 | TC-009 | ⬜ Not Run |
-| AC-002d | US-002 | TC-010 | ⬜ Not Run |
-| AC-002e | US-002 | TC-011 | ⬜ Not Run |
-| AC-003a | US-003 | TC-012 | ⬜ Not Run |
-| AC-003b | US-003 | TC-013 | ⬜ Not Run |
-| AC-003c | US-003 | TC-014 | ⬜ Not Run |
-| AC-003d | US-003 | TC-015 | ⬜ Not Run |
-| AC-003e | US-003 | TC-016 | ⬜ Not Run |
-| AC-003f | US-003 | TC-017 | ⬜ Not Run |
-| AC-003g | US-003 | TC-018 | ⬜ Not Run |
-| AC-010a | US-010 | TC-019 | ⬜ Not Run |
-| AC-010b | US-010 | TC-020 | ⬜ Not Run |
-| AC-010c | US-010 | TC-021 | ⬜ Not Run |
-| AC-010d | US-010 | TC-022 | ⬜ Not Run |
-| AC-011a | US-011 | TC-023 | ⬜ Not Run |
-| AC-011b | US-011 | TC-024 | ⬜ Not Run |
-| AC-011c | US-011 | TC-025 | ⬜ Not Run |
-| AC-011d | US-011 | TC-026 | ⬜ Not Run |
-| AC-012a | US-012 | TC-027 | ⬜ Not Run |
-| AC-012b | US-012 | TC-028 | ⬜ Not Run |
-| AC-012c | US-012 | TC-029 | ⬜ Not Run |
-| AC-012d | US-012 | TC-030 | ⬜ Not Run |
-| AC-020a | US-020 | TC-031 | ⬜ Not Run |
-| AC-020b | US-020 | TC-032 | ⬜ Not Run |
-| AC-020c | US-020 | TC-033 | ⬜ Not Run |
-| AC-020d | US-020 | TC-034 | ⬜ Not Run |
-| AC-020e | US-020 | TC-035 | ⬜ Not Run |
-| AC-021a | US-021 | TC-036 | ⬜ Not Run |
-| AC-021b | US-021 | TC-037 | ⬜ Not Run |
-| AC-021c | US-021 | TC-038 | ⬜ Not Run |
-| AC-021d | US-021 | TC-039 | ⬜ Not Run |
-| AC-021e | US-021 | TC-040 | ⬜ Not Run |
-| AC-021f | US-021 | TC-041 | ⬜ Not Run |
-| AC-022a | US-022 | TC-042 | ⬜ Not Run |
-| AC-022b | US-022 | TC-043 | ⬜ Not Run |
-| AC-022c | US-022 | TC-044 | ⬜ Not Run |
-| AC-022d | US-022 | TC-045 | ⬜ Not Run |
-| AC-022e | US-022 | TC-046 | ⬜ Not Run |
-| AC-030a | US-030 | TC-047 | ⬜ Not Run |
-| AC-030b | US-030 | TC-048 | ⬜ Not Run |
-| AC-030c | US-030 | TC-049 | ⬜ Not Run |
-| AC-030d | US-030 | TC-050 | ⬜ Not Run |
-| AC-030e | US-030 | TC-051 | ⬜ Not Run |
-| AC-031a | US-031 | TC-052 | ⬜ Not Run |
-| AC-031b | US-031 | TC-053 | ⬜ Not Run |
-| AC-031c | US-031 | TC-054 | ⬜ Not Run |
-| AC-031d | US-031 | TC-055 | ⬜ Not Run |
-| AC-031e | US-031 | TC-056 | ⬜ Not Run |
-| Rate Limiting (default) | API Spec §5 | TC-057 | ⬜ Not Run |
-| Rate Limiting (webhook) | API Spec §5 | TC-058 | ⬜ Not Run |
-| HMAC Key Rotation | API Spec §4.4 | TC-059 | ⬜ Not Run |
+> Execution results must be filled from real test runs. Do not mark cases passed based on specification review alone.
 
 ---
 
@@ -1602,12 +569,13 @@ Detailed test cases — preconditions, steps, expected results, and traceability
 
 | Document | Relationship |
 |----------|-------------|
-| [[041_test_plan]] | Plan governing these cases |
-| [[013_acceptance_criteria]] | ACs these cases verify |
-| [[022_API_specification]] | API contracts for integration tests |
-| [[023_database_schema_DDL]] | DB constraints for integrity tests |
+| [[013_acceptance_criteria]] | Source criteria |
+| [[041_test_plan]] | Test strategy |
+| [[045_coverage_report]] | Coverage summary |
+| [[022_API_specification]] | API contract |
+| [[023_database_schema_DDL]] | Database rules |
 
 ---
 
-> **Template Standard:** Based on SWEBOK v4, ISO/IEC/IEEE 29119
-> **Usage:** Every acceptance criterion has at least one test case. Every test case traces to an AC. Keep them in sync.
+> **Template Standard:** Based on SWEBOK v4 and ISO/IEC/IEEE 29119
+> **Usage:** Active Phase 1 execution set. Superseded subscriber tests remain historical and are not evidence of current coverage.

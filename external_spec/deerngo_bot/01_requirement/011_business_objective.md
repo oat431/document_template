@@ -1,16 +1,16 @@
 ---
 document_type: Business Objectives
-version: "0.1"
+version: "0.2"
 status: Draft
 author: "PO"
 created: "2026-07-29"
-last_updated: "2026-07-29"
+last_updated: "2026-08-02"
 project_name: "Deerngo Bot"
 project_id: "DERNBOT-001"
 sponsor: "Deer_NGO"
 ba_owner: "PO"
 classification: "Internal"
-tags: [business-objectives, smart-goals, kpi, vrm, viewer-relationship-management]
+tags: [business-objectives, smart-goals, kpi, vrm, viewer-relationship-management, members, privacy]
 standard_ref:
   - BABOK v3 — Strategy Analysis
   - PMBOK v8 — Initiating (ISO 21502)
@@ -20,47 +20,59 @@ standard_ref:
 # Business Objectives
 
 > **Project:** Deerngo Bot — Viewer Relationship Management (VRM)
-> **Version:** 0.1 | **Status:** Draft
-> **Last Updated:** 2026-07-29
+> **Version:** 0.2 | **Status:** Draft
+> **Last Updated:** 2026-08-02
+>
+> **Scope change:** The former YouTube subscriber-polling approach was removed after live verification showed that the API exposes only a limited subscriber subset. Phase 1 now uses explicit viewer membership through `:deer: register`.
 
 ---
 
 ## Document Control
 
-| Field            | Value                      |
-| ---------------- | -------------------------- |
-| Document Owner   | PO                         |
-| Sponsor          | Deer_NGO (YouTube Creator) |
-| Business Analyst | PO                         |
+| Field | Value |
+|-------|-------|
+| Document Owner | PO |
+| Sponsor | Deer_NGO (YouTube Creator) |
+| Business Analyst | PO |
 
 ### Revision History
 
 | Version | Date | Author | Change Description |
 |---------|------|--------|--------------------|
-| 0.1 | 2026-07-29 | PO | Initial draft from stakeholder grill session |
+| 0.1 | 2026-07-29 | PO | Initial subscriber-based objectives |
+| 0.2 | 2026-08-02 | PO | Replaced subscriber capture with explicit member registration and privacy-aware scoring |
 
 ---
 
 ## 1. Executive Summary
 
-| Field                | Detail                                                                                                                                                                         |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Purpose              | Build a Viewer Relationship Management (VRM) system for the Deer_NGO YouTube channel to foster community engagement through donation-based point tracking and chat interaction |
-| Expected Outcome     | Viewers are recognized for their contributions via a points system, driving community belonging and healthy competition                                                        |
-| Number of Objectives | 4                                                                                                                                                                              |
-| Strategic Theme      | Community Building & Viewer Engagement                                                                                                                                         |
-| Target Completion    | Phase 1 MVP — TBD                                                                                                                                                              |
+| Field | Detail |
+|-------|--------|
+| Purpose | Build a Viewer Relationship Management (VRM) system for the Deer_NGO YouTube channel that lets viewers explicitly join a points program and participate in donation-based community engagement |
+| Expected Outcome | Registered viewers can earn points from future qualifying donations, check their status in chat, and optionally appear on a public contributor scoreboard |
+| Number of Objectives | 4 |
+| Strategic Theme | Community Building, Viewer Engagement & Privacy-Aware Participation |
+| Target Completion | Phase 1 MVP — TBD |
 
-### What is Deerngo Bot?
+### Product Boundary
 
-Deerngo Bot is a **Viewer Relationship Management (VRM)** system — a lightweight CRM for live stream viewers. It tracks viewer contributions (subscriptions, donations) and rewards engagement through a points system visible in live chat and on a public scoreboard.
+Deerngo Bot is a lightweight VRM system for live-stream viewers. It is **not** a complete YouTube subscriber analytics system. YouTube subscriber data is not used to create members, award points, or populate the public scoreboard in Phase 1.
+
+**Phase 1 identity flow:**
+
+```text
+Viewer types :deer: register during live chat
+  → streamer.bot supplies actual chat identity
+  → Go backend creates an active member with 0 points
+  → future qualifying EasyDonate donations may earn points
+```
 
 **Tech Stack:**
 - **Automation Engine:** streamer.bot (Windows desktop, local)
-- **Backend:** Go service (local Windows machine)
+- **Backend:** Go service (homelab Docker)
 - **Database:** PostgreSQL 18 (existing homelab)
 - **Frontend:** React/Next.js (public scoreboard)
-- **Donation Source:** EasyDonate API (easydonate.app/deerngo0)
+- **Donation Source:** EasyDonate webhook + REST API fallback
 - **YouTube Channel:** @Deer_NGO
 
 ---
@@ -69,32 +81,32 @@ Deerngo Bot is a **Viewer Relationship Management (VRM)** system — a lightweig
 
 ### 2.1 Organizational Strategy Map
 
-```
-Vision: Build the most engaged YouTube live streaming community
-  └── Strategic Theme: Community Building
-        └── Strategic Goal: Increase viewer retention and loyalty
-              ├── OBJ-01: Automate viewer registration
+```text
+Vision: Build an engaged and respectful YouTube live-stream community
+  └── Strategic Theme: Community Building & Privacy-Aware Participation
+        └── Strategic Goal: Make contribution and participation easy, clear, and voluntary
+              ├── OBJ-01: Enable explicit viewer membership
               ├── OBJ-02: Enable chat-based donation promotion
-              ├── OBJ-03: Implement donation-driven point system
-              └── OBJ-04: Provide public community scoreboard
+              ├── OBJ-03: Implement donation-driven points for active members
+              └── OBJ-04: Provide a privacy-aware public contributor scoreboard
 ```
 
 ### 2.2 Strategy Traceability
 
 | Strategic Theme | Strategic Goal | Business Objective | Contribution |
 |----------------|---------------|-------------------|-------------|
-| Community Building | Increase viewer retention | OBJ-01 | Captures subscriber data for relationship tracking |
-| Community Building | Increase viewer retention | OBJ-02 | Lowers friction for donations via chat command |
-| Community Building | Drive engagement through rewards | OBJ-03 | Core VRM mechanic — points for donations |
-| Community Building | Foster competition & belonging | OBJ-04 | Public visibility drives competitive engagement |
+| Community Building | Make participation easy | OBJ-01 | Viewers explicitly join the VRM program through live chat |
+| Community Building | Reduce donation friction | OBJ-02 | Viewers can find the donation page directly in chat |
+| Engagement | Reward qualifying contribution | OBJ-03 | 1 THB = 1 point for registered active members |
+| Privacy-aware participation | Make public visibility understandable and controllable | OBJ-04 | Only eligible public contributors are shown; private members remain hidden |
 
 ### 2.3 Balanced Scorecard Perspective
 
 | Perspective | Objective Count | Objectives |
 |------------|----------------|-----------|
-| 💰 **Financial** | 1 | OBJ-02 (donation promotion) |
-| 👥 **Customer** | 2 | OBJ-03, OBJ-04 (viewer engagement) |
-| ⚙️ **Internal Process** | 1 | OBJ-01 (automation) |
+| 💰 **Financial** | 1 | OBJ-02 |
+| 👥 **Customer / Community** | 2 | OBJ-03, OBJ-04 |
+| ⚙️ **Internal Process** | 1 | OBJ-01 |
 | 📚 **Learning & Growth** | 0 | — |
 
 ---
@@ -105,113 +117,81 @@ Vision: Build the most engaged YouTube live streaming community
 
 | ID | Objective | Specific | Measurable | Achievable | Relevant | Time-Bound | Priority |
 |----|-----------|----------|-----------|-----------|----------|-----------|----------|
-| OBJ-01 | Automate subscriber registration | Capture new YouTube subscribers to PostgreSQL via hybrid approach (YouTube API polling 24/7 + streamer.bot real-time during live) | 100% of new subscribers captured within 15 minutes (polling) or 5 seconds (live) | YouTube Data API v3 + streamer.bot subscription trigger | Foundation for all VRM features | Phase 1 | 🔴 |
-| OBJ-02 | Enable chat-based donation promotion | `:deer: donate` command posts EasyDonate link in live chat | 100% command response rate, <2s latency | streamer.bot chat command trigger + send message action | Lowers donation friction | Phase 1 | 🔴 |
-| OBJ-03 | Implement donation-driven point system | `:deer: point` shows viewer's points; 1 THB = 1 point via EasyDonate API | Points accurate to real donations, <5s sync delay | EasyDonate API available, fuzzy name matching | Core VRM mechanic | Phase 1 | 🔴 |
-| OBJ-04 | Provide public community scoreboard | React/Next.js page showing viewer points leaderboard | Page loads <2s, updates within 60s of new donation | Simple read-only API + static frontend | Community visibility | Phase 1 | 🟡 |
+| OBJ-01 | Enable explicit viewer membership | Let viewers register through `:deer: register` using the actual streamer.bot chat identity | 100% of valid registration requests create or identify the correct active member within 5 seconds | streamer.bot supplies user ID/handle; Go API persists membership | Foundation for points and voluntary participation | Phase 1 | 🔴 |
+| OBJ-02 | Enable chat-based donation promotion | `:deer: donate` posts the EasyDonate link in live chat | 100% response rate when streamer.bot is online; response under 2 seconds | streamer.bot command/action | Reduces donation friction | Phase 1 | 🔴 |
+| OBJ-03 | Implement member-based donation points | Award 1 point per THB only for active members and donations at/after registration with normalized exact name match | 100% idempotent point application for eligible donations | EasyDonate webhook + API fallback + exact matching | Core VRM mechanic | Phase 1 | 🔴 |
+| OBJ-04 | Provide privacy-aware public scoreboard | Show only active, public, points-greater-than-zero members using normalized handles | Data freshness under 60 seconds; no private donor/display-name fields exposed | Read-only API + Next.js frontend | Enables community recognition without exposing unnecessary data | Phase 1 | 🟡 |
 
 ### 3.2 Detailed Objective Cards
 
-#### OBJ-01: Automate Subscriber Registration
+#### OBJ-01: Enable Explicit Viewer Membership
 
-| Field          | Detail                                                                                                     |
-| -------------- | ---------------------------------------------------------------------------------------------------------- |
-| **Statement** | Automatically capture every new YouTube subscriber's data into PostgreSQL via hybrid approach: YouTube Data API polling (24/7) + streamer.bot real-time (during live streams) |
-| **Specific** | Primary: Go backend polls YouTube Data API `/youtube/v3/subscriptions` every 15 minutes. Secondary: streamer.bot fires on YouTube subscription event during live, calls Go backend API. Backend upserts subscriber record (deduplicates by handle) |
-| **Measurable** | 100% capture rate (compare YouTube API subscriber count vs DB count) |
-| **Achievable** | YouTube Data API v3 has `subscriptions.list` endpoint (10,000 quota units/day, 1 unit per call = ~660 calls/day). streamer.bot has native YouTube subscription triggers. Hybrid ensures zero gaps |
-| **Relevant**   | Foundation for all viewer relationship tracking                                                            |
-| **Time-Bound** | Phase 1 MVP                                                                                                |
-| **Owner**      | Dev                                                                                                        |
-| **Priority**   | 🔴 Must Have                                                                                               |
-| **Baseline**   | 0 subscribers tracked                                                                                      |
-| **Target**     | 100% of new subscribers tracked                                                                            |
-| **Unit**       | % capture rate                                                                                             |
-| **Source**     | Stakeholder requirement (Deer_NGO)                                                                         |
+| Field | Detail |
+|-------|--------|
+| **Statement** | Enable viewers to explicitly register for the VRM program through `:deer: register` during live chat |
+| **Specific** | streamer.bot supplies the actual chat author's YouTube user ID and current handle. The backend creates an active member with 0 points, `public_visibility=true`, and no stored YouTube display name |
+| **Measurable** | Registration success rate = valid requests that create or identify the correct active member / valid requests |
+| **Achievable** | Does not depend on incomplete YouTube subscriber-list polling |
+| **Relevant** | Establishes an explicit, understandable membership event |
+| **Time-Bound** | Phase 1 MVP |
+| **Owner** | Dev |
+| **Priority** | 🔴 Must Have |
+| **Baseline** | 0 active members |
+| **Target** | 100% valid registration requests succeed or return the correct existing-member result |
+| **Unit** | % registration success |
+| **Source** | Stakeholder requirement and MM06 change decision |
 
 #### OBJ-02: Enable Chat-Based Donation Promotion
 
 | Field | Detail |
 |-------|--------|
-| **Statement** | Viewers can type `:deer: donate` in live chat to trigger the bot to post the EasyDonate link |
-| **Specific** | streamer.bot monitors chat for `:deer: donate` command, responds with EasyDonate URL |
-| **Measurable** | 100% command response rate, <2s response latency |
-| **Achievable** | streamer.bot chat message trigger + send message action |
-| **Relevant** | Reduces friction for donations — viewers don't need to search for the link |
+| **Statement** | Viewers can type `:deer: donate` in live chat to receive the EasyDonate link |
+| **Specific** | streamer.bot matches the command and posts the configured EasyDonate URL |
+| **Measurable** | 100% response rate while streamer.bot is online; under 2 seconds |
+| **Achievable** | streamer.bot command trigger and send-message action |
+| **Relevant** | Reduces donation friction |
 | **Time-Bound** | Phase 1 MVP |
 | **Owner** | Dev |
 | **Priority** | 🔴 Must Have |
-| **Baseline** | Manual link sharing |
-| **Target** | Automated instant response |
-| **Unit** | Response rate %, latency seconds |
-| **Source** | Stakeholder requirement (Deer_NGO) |
 
-#### OBJ-03: Implement Donation-Driven Point System
+#### OBJ-03: Implement Member-Based Donation Points
 
 | Field | Detail |
 |-------|--------|
-| **Statement** | Every 1 THB donated via EasyDonate equals 1 point, matched to YouTube handle via fuzzy name matching, queryable via `:deer: point` in chat |
-| **Specific** | Backend polls EasyDonate API (or receives webhooks), matches donation names to YouTube handles, accumulates points. `:deer: point` command queries and displays points in chat |
-| **Measurable** | Points accuracy (match real donations), sync delay <60s |
-| **Achievable** | EasyDonate API available with donation history, stats, and search endpoints |
-| **Relevant** | Core VRM mechanic — the primary engagement driver |
+| **Statement** | Award 1 point per THB to an active member when the normalized EasyDonate donor name exactly matches the active member handle and the donation occurred at/after registration |
+| **Specific** | EasyDonate webhook is primary; API polling is fallback. Store donation privately, normalize donor name, match only active members, enforce `donation_time >= registered_at`, and apply points once |
+| **Measurable** | 100% idempotent point application for eligible donations; no points for pre-registration, inactive, unmatched, or duplicate donations |
+| **Achievable** | Exact matching is simpler and safer than fuzzy matching for the MVP |
+| **Relevant** | Core VRM engagement mechanic |
 | **Time-Bound** | Phase 1 MVP |
 | **Owner** | Dev |
 | **Priority** | 🔴 Must Have |
-| **Baseline** | 0 points tracked |
-| **Target** | 100% donation-to-point accuracy |
-| **Unit** | % accuracy, sync delay seconds |
-| **Source** | Stakeholder requirement (Deer_NGO) |
 
-#### OBJ-04: Provide Public Community Scoreboard
+#### OBJ-04: Provide Privacy-Aware Public Scoreboard
 
 | Field | Detail |
 |-------|--------|
-| **Statement** | Public React/Next.js webpage showing viewer points leaderboard, accessible via internet |
-| **Specific** | Frontend fetches from Go API, displays ranked list of viewers by points |
-| **Measurable** | Page load <2s, data freshness <60s |
-| **Achievable** | Simple read-only API + static frontend, exposed via tunnel/port forwarding |
-| **Relevant** | Public visibility drives competitive engagement and community belonging |
+| **Statement** | Provide a public scoreboard showing only active members who are public and have points greater than zero |
+| **Specific** | Return normalized handle and point total only. Exclude inactive/private/zero-point members, YouTube display names, raw donor names, and donation messages |
+| **Measurable** | Data freshness under 60 seconds; public API contains no excluded fields |
+| **Achievable** | Read-only backend endpoint + Next.js page |
+| **Relevant** | Supports community recognition while minimizing public data exposure |
 | **Time-Bound** | Phase 1 MVP |
 | **Owner** | Dev |
 | **Priority** | 🟡 Should Have |
-| **Baseline** | No public scoreboard |
-| **Target** | Live scoreboard accessible to anyone |
-| **Unit** | Page load time, data freshness |
-| **Source** | Stakeholder requirement (Deer_NGO) |
 
 ---
 
 ## 4. KPI Framework
 
-### 4.1 KPI Register
-
 | ID | KPI | Description | Formula | Unit | Frequency | Data Source | Owner |
 |----|-----|-------------|---------|------|-----------|-------------|-------|
-| KPI-01 | Subscriber Capture Rate | % of new subscribers captured in DB | (Captured / Total New Subs) × 100 | % | Per stream | streamer.bot logs + PostgreSQL | Dev |
-| KPI-02 | Donate Command Response Rate | % of `:deer: donate` commands answered | (Responded / Total Commands) × 100 | % | Per stream | streamer.bot logs | Dev |
-| KPI-03 | Point Query Response Rate | % of `:deer: point` commands answered | (Responded / Total Commands) × 100 | % | Per stream | streamer.bot logs | Dev |
-| KPI-04 | Donation-to-Point Accuracy | % of donations correctly matched to points | (Matched Donations / Total Donations) × 100 | % | Daily | EasyDonate API + PostgreSQL | Dev |
-| KPI-05 | Scoreboard Page Load Time | Time to load public scoreboard | P95 load time | seconds | Continuous | Web vitals | Dev |
-
-### 4.2 KPI Dashboard Mockup
-
-| KPI | Current | Target | Status | Trend |
-|-----|---------|--------|--------|-------|
-| Subscriber Capture Rate | — | 100% | ⬜ Not Started | — |
-| Donate Command Response | — | 100% | ⬜ Not Started | — |
-| Point Query Response | — | 100% | ⬜ Not Started | — |
-| Donation-to-Point Accuracy | — | 100% | ⬜ Not Started | — |
-| Scoreboard Load Time | — | <2s | ⬜ Not Started | — |
-
-### 4.3 Leading vs Lagging Indicators
-
-| Type | KPI | What It Predicts / Confirms |
-|------|-----|----------------------------|
-| **Leading** | Donate Command Response Rate | Predicts donation conversion |
-| **Leading** | Point Query Response Rate | Predicts viewer engagement |
-| **Lagging** | Donation-to-Point Accuracy | Confirms system reliability |
-| **Lagging** | Subscriber Capture Rate | Confirms data completeness |
+| KPI-01 | Registration Success Rate | Valid registrations that create/identify the correct active member | Successful valid requests / valid requests × 100 | % | Per stream | streamer.bot logs + PostgreSQL | Dev |
+| KPI-02 | Donate Command Response Rate | `:deer: donate` commands answered while bot is online | Responses / commands × 100 | % | Per stream | streamer.bot logs | Dev |
+| KPI-03 | Point Query Response Rate | Point requests that receive the correct visibility-aware response | Correct responses / requests × 100 | % | Per stream | streamer.bot logs + API logs | Dev |
+| KPI-04 | Eligible Donation Point Accuracy | Eligible donations that apply exactly once to the correct member | Correct applications / eligible donations × 100 | % | Daily | EasyDonate + PostgreSQL | Dev |
+| KPI-05 | Public Data Compliance | Public scoreboard responses containing only approved fields | Compliant responses / sampled responses × 100 | % | Per release | API tests | Dev/QA |
+| KPI-06 | Scoreboard Data Freshness | Time from accepted donation to updated scoreboard | P95 processing delay | seconds | Continuous | Donation/API timestamps | Dev |
 
 ---
 
@@ -221,48 +201,44 @@ Vision: Build the most engaged YouTube live streaming community
 
 | ID | Metric | Baseline Value | Measurement Date | Measurement Method | Confidence |
 |----|--------|---------------|-----------------|-------------------|-----------|
-| OBJ-01 | Subscribers tracked | 0 | 2026-07-29 | No system exists | High |
+| OBJ-01 | Active members registered | 0 | 2026-08-02 | New member system does not exist yet | High |
 | OBJ-02 | Donate link sharing | Manual | 2026-07-29 | Observation | High |
-| OBJ-03 | Points tracked | 0 | 2026-07-29 | No system exists | High |
-| OBJ-04 | Public scoreboard | None | 2026-07-29 | No system exists | High |
+| OBJ-03 | Points tracked | 0 | 2026-07-29 | New points system does not exist yet | High |
+| OBJ-04 | Public scoreboard | None | 2026-07-29 | New scoreboard does not exist yet | High |
 
 ### 5.2 Target Measurements
 
 | ID | Metric | Target Value | Target Date | Rationale | Stretch Goal |
 |----|--------|-------------|-------------|-----------|-------------|
-| OBJ-01 | Subscriber capture rate | 100% | Phase 1 | Complete automation (hybrid: YouTube API + streamer.bot) | — |
-| OBJ-02 | Command response rate | 100% | Phase 1 | Reliable automation | <1s latency |
-| OBJ-03 | Point accuracy | 100% | Phase 1 | Trust in system | <30s sync |
-| OBJ-04 | Scoreboard load time | <2s | Phase 1 | Good UX | <1s |
+| OBJ-01 | Registration success rate | 100% | Phase 1 | Explicit membership is the new foundation | — |
+| OBJ-02 | Command response rate | 100% while bot online | Phase 1 | Reliable chat automation | <1s latency |
+| OBJ-03 | Eligible point accuracy | 100% | Phase 1 | Trust in the points system | <30s sync |
+| OBJ-04 | Scoreboard freshness and field compliance | <60s and 100% approved fields | Phase 1 | Community value with privacy minimization | <1s page load |
 
 ### 5.3 Measurement Plan
 
 | ID | Metric | Data Collection Method | Tool / System | Responsible | Collection Frequency | Reporting Format |
 |----|--------|----------------------|---------------|-------------|--------------------|--------------------|
-| OBJ-01 | Capture rate | Log comparison + API quota monitoring | YouTube API + PostgreSQL + streamer.bot | Dev | Per stream + daily | Query report |
-| OBJ-02 | Response rate | Log analysis | streamer.bot logs | Dev | Per stream | Manual check |
-| OBJ-03 | Point accuracy | Donation reconciliation | EasyDonate API + PostgreSQL | Dev | Daily | Query report |
-| OBJ-04 | Load time | Web vitals | Browser DevTools | Dev | On deploy | Manual check |
+| OBJ-01 | Registration success | Compare valid commands with API results | streamer.bot + PostgreSQL | Dev | Per stream | Query report |
+| OBJ-02 | Response rate | Log analysis | streamer.bot | Dev | Per stream | Manual check |
+| OBJ-03 | Point accuracy | Reconcile EasyDonate records and member totals | EasyDonate + PostgreSQL | Dev/QA | Daily | Query report |
+| OBJ-04 | Public data/freshness | API contract and browser checks | QA + browser tools | QA | Per release | Test report |
 
 ---
 
 ## 6. Objective Dependencies
 
-### 6.1 Inter-Objective Dependencies
-
 | Dependent Objective | Depends On | Relationship | Impact if Blocked |
 |--------------------|-----------|-------------|-------------------|
-| OBJ-03 | OBJ-01 | Points require subscriber data to match YouTube handles | Cannot match donations to viewers |
-| OBJ-04 | OBJ-03 | Scoreboard displays point data | No data to display |
-| OBJ-02 | — | Independent (chat command only) | — |
-
-### 6.2 Dependency Diagram
+| OBJ-03 | OBJ-01 | Points require an active member registration | Donations remain uncredited |
+| OBJ-04 | OBJ-03 | Scoreboard reads member point totals | No contributor data to show |
+| OBJ-02 | — | Independent streamer.bot command | Donation link command unavailable |
 
 ```mermaid
 flowchart LR
-    OBJ01[OBJ-01<br>Subscriber Registration] --> OBJ03[OBJ-03<br>Point System]
-    OBJ03 --> OBJ04[OBJ-04<br>Scoreboard]
-    OBJ02[OBJ-02<br>Donate Command] -.-> |independent| OBJ03
+    OBJ01[OBJ-01<br>Member Registration] --> OBJ03[OBJ-03<br>Member Points]
+    OBJ03 --> OBJ04[OBJ-04<br>Public Scoreboard]
+    OBJ02[OBJ-02<br>Donate Command] -.-> OBJ03
 
     style OBJ01 fill:#4CAF50,color:#fff
     style OBJ02 fill:#4CAF50,color:#fff
@@ -270,58 +246,46 @@ flowchart LR
     style OBJ04 fill:#FF9800,color:#fff
 ```
 
-### 6.3 External Dependencies
+### External Dependencies
 
 | ID | Dependency | Type | Affected Objectives | Mitigation |
 |----|-----------|------|-------------------|-----------|
-| DEP-01 | streamer.bot running and configured | External | OBJ-02, OBJ-03 | Already running — configure triggers. Not needed for subscriber capture (backup only) |
-| DEP-02 | EasyDonate API availability | External | OBJ-03 | Polling fallback, cache last known state |
-| DEP-03 | YouTube Data API v3 access (OAuth) | External | OBJ-01 | Primary subscriber source — requires channel owner OAuth token |
-| DEP-04 | PostgreSQL 18 availability | Internal | All | Already running in homelab |
+| DEP-01 | streamer.bot running and connected during live | External | OBJ-01, OBJ-02, OBJ-03 | Registration is live-only; show retry message when backend is unavailable |
+| DEP-02 | EasyDonate webhook/API availability | External | OBJ-03 | Webhook primary + API polling fallback + idempotency |
+| DEP-03 | Public webhook exposure | External | OBJ-03 | Cloudflare Tunnel; unpredictable webhook path; strict validation |
+| DEP-04 | PostgreSQL 18 availability | Internal | All | Existing homelab service and backups |
 
 ---
 
 ## 7. Risk to Objectives
 
-### 7.1 Objective Risk Matrix
-
 | ID | Objective | Risk | Probability | Impact | Risk Level | Mitigation | Owner |
 |----|-----------|------|------------|--------|-----------|-----------|-------|
-| OR-01 | OBJ-03 | EasyDonate API rate limit (60 req/min) | Medium | Medium | 🟡 | Polling interval ≥1s, batch queries | Dev |
-| OR-02 | OBJ-03 | Fuzzy name matching fails (donation name ≠ YouTube handle) | Medium | High | 🟠 | Manual mapping fallback, configurable match rules | Dev |
-| OR-03 | OBJ-01 | YouTube API quota exhaustion (>10K units/day) | Low | High | 🟡 | Poll every 15 min (96 calls/day), monitor quota usage | Dev |
-| OR-04 | OBJ-04 | Local machine offline = scoreboard down | Medium | Medium | 🟡 | Consider cloud deployment for Phase 2 | Dev |
-
-### 7.2 Risk Heat Map
-
-| Impact \ Probability | Low | Medium | High |
-|---------------------|-----|--------|------|
-| **High** | 🟢 | 🟠 OR-02 | 🔴 |
-| **Medium** | 🟢 | 🟡 OR-01, OR-04 | 🟠 |
-| **Low** | 🟢 | 🟢 | 🟡 |
-
-> **Legend:** 🔴 Critical | 🟠 High | 🟡 Medium | 🟢 Low
+| OR-01 | OBJ-03 | EasyDonate API rate limit or provider contract change | Medium | Medium | 🟡 | 60 req/min limit; backoff; verify current payload and scopes | Dev |
+| OR-02 | OBJ-03 | Donor name does not match member handle | High | Medium | 🟡 | Publish naming rule; exact normalized match; retain unmatched privately | Owner/Dev |
+| OR-03 | OBJ-03 | Wrong member receives points due handle conflict | Low | High | 🟠 | Active-handle uniqueness; reject conflicting registration | Dev |
+| OR-04 | OBJ-04 | Public handle/score is personal data or member wants removal | Medium | High | 🟠 | Clear registration notice; `:deer: private`; exclude private/inactive records | Owner/Dev |
+| OR-05 | OBJ-01 | streamer.bot is offline during registration | Medium | Medium | 🟡 | No false success; viewer retries during next live stream | Dev |
+| OR-06 | OBJ-03 | Manual point corrections create data inconsistency | Medium | High | 🟠 | Transactional DB procedure and correction note; admin console later | Owner/Dev |
 
 ---
 
 ## 8. Objective Tracking
 
-### 8.1 Objective Status Summary
-
 | ID | Objective | Status | % Complete | Last Updated | Notes |
 |----|-----------|--------|-----------|-------------|-------|
-| OBJ-01 | Automate subscriber registration | ⬜ Not Started | 0% | 2026-07-29 | |
-| OBJ-02 | Enable chat-based donation promotion | ⬜ Not Started | 0% | 2026-07-29 | |
-| OBJ-03 | Implement donation-driven point system | ⬜ Not Started | 0% | 2026-07-29 | |
-| OBJ-04 | Provide public community scoreboard | ⬜ Not Started | 0% | 2026-07-29 | |
+| OBJ-01 | Enable explicit viewer membership | ⏳ In Progress | 25% | 2026-08-02 | New scope approved; implementation pending |
+| OBJ-02 | Enable chat-based donation promotion | ⏳ In Progress | 50% | 2026-08-02 | Existing command issue remains active |
+| OBJ-03 | Implement member-based donation points | ⬜ Not Started | 0% | 2026-08-02 | Requires member schema and EasyDonate contract update |
+| OBJ-04 | Provide privacy-aware public scoreboard | ⬜ Not Started | 0% | 2026-08-02 | Depends on member-based points |
 
-### 8.2 Review Cadence
+### Review Cadence
 
 | Review Type | Frequency | Participants | Purpose |
 |------------|-----------|-------------|---------|
-| Feature Demo | Per sprint | PO, Dev | Validate working features |
-| KPI Review | Weekly | PO, Dev | Track system reliability |
-| Phase Review | End of Phase 1 | PO, Stakeholder | Assess Phase 1 completeness, plan Phase 2 |
+| Feature Demo | Per sprint | PO, Dev | Validate working behavior |
+| KPI Review | Weekly | PO, Dev | Track reliability and privacy behavior |
+| Phase Review | End of Phase 1 | PO, Stakeholder | Assess MVP acceptance and go-live readiness |
 
 ---
 
@@ -329,9 +293,10 @@ flowchart LR
 
 | Document | Relationship |
 |----------|-------------|
-| [[012_user_stories]] | User stories implement these objectives |
-| [[013_acceptance_criteria]] | ACs verify objective achievement |
-| [[014_stakeholder_analysis]] | Stakeholders identified for each objective |
+| [[012_user_stories]] | Stories implement these objectives |
+| [[013_acceptance_criteria]] | Criteria verify objective achievement |
+| [[072_MM06_dev-to-po-qa-youtube-subscriber-limit_20260801]] | Scope-change decision |
+| [[071_risk_register]] | Project-level risks |
 
 ---
 

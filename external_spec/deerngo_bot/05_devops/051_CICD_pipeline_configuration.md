@@ -1,14 +1,14 @@
 ---
 document_type: CI/CD Pipeline Configuration
-version: "0.1"
+version: "0.2"
 status: Draft
-author: "DevOps"
+author: "DevOps / PO"
 created: "2026-07-30"
-last_updated: "2026-07-30"
+last_updated: "2026-08-02"
 project_name: "Deerngo Bot"
 project_id: "DERNBOT-001"
 classification: "Internal"
-tags: [ci-cd, pipeline, github-actions, devops, docker, go, nextjs]
+tags: [ci-cd, pipeline, github-actions, devops, docker, go, nextjs, members, privacy]
 standard_ref:
   - SWEBOK v4 — Operations
   - 12-Factor App (Build, release, run)
@@ -18,95 +18,112 @@ parent_project: "Deerngo Bot — VRM"
 # CI/CD Pipeline Configuration
 
 > **Project:** Deerngo Bot — Viewer Relationship Management (VRM)
-> **Version:** 0.1 | **Status:** Draft
-> **Last Updated:** 2026-07-30
-
----
-
-## Document Control
-
-| Field | Value |
-|-------|-------|
-| Document Owner | DevOps |
-| Repositories | `deerngo-bot` (Go backend), `deerngo-web` (Next.js frontend) |
-| CI/CD Platform | GitHub Actions |
-| Container Registry | GHCR (`ghcr.io`) |
-
-### Revision History
-
-| Version | Date | Author | Change Description |
-|---------|------|--------|--------------------|
-| 0.1 | 2026-07-30 | DevOps | Initial CI/CD pipeline — dual-repo, GHCR, homelab deploy |
+> **Version:** 0.2 | **Status:** Draft
+> **Last Updated:** 2026-08-02
+>
+> **Phase 1 deployment decision:** CI/CD is a future/optional path. Phase 1 uses reviewed manual Docker Compose deployment. These workflows may build/test images, but must not silently deploy production without the approved deployment gate.
 
 ---
 
 ## 1. Purpose
 
-> Defines the CI/CD pipeline for Deerngo Bot — automated build, test, container image creation, and deployment to the homelab server. Two separate pipelines (one per repo) that produce Docker images pushed to GHCR, then pulled by the homelab server.
-
----
+Define optional GitHub Actions checks/builds for the two repositories while preserving the Phase 1 manual deployment decision. The pipeline must validate the revised member-based MVP and never expose secrets or real donor data.
 
 ## 2. Pipeline Overview
 
 ```mermaid
 flowchart LR
-    subgraph PR["Pull Request"]
-        PUSH_PR[Push] --> LINT[Lint]
-        LINT --> TYPE[Type Check]
-        TYPE --> TEST[Unit Tests]
-    end
-
-    subgraph MAIN["Merge to main"]
-        PUSH_MAIN[Push to main] --> LINT2[Lint]
-        LINT2 --> TEST2[Tests]
-        TEST2 --> BUILD[Build Docker Image]
-        BUILD --> SCAN[Security Scan]
-        SCAN --> PUSH_REG[Push to GHCR]
-        PUSH_REG --> DEPLOY[Deploy to Homelab]
-        DEPLOY --> SMOKE[Smoke Test]
-    end
+    PR[Pull Request] --> LINT[Lint / Format]
+    LINT --> TEST[Unit + Integration Tests]
+    TEST --> SCAN[Dependency/Container Scan]
+    SCAN --> BUILD[Build Docker Image]
+    BUILD --> ARTIFACT[Push Immutable GHCR Artifact]
+    ARTIFACT -.-> MANUAL[Manual approved deployment]
+    MANUAL --> MIGRATE[Backup + migrate]
+    MIGRATE --> SMOKE[Health + privacy smoke test]
 
     style PR fill:#1565C0,color:#fff
-    style MAIN fill:#2E7D32,color:#fff
-    style BUILD fill:#9C27B0,color:#fff
     style SCAN fill:#f44336,color:#fff
-    style DEPLOY fill:#4CAF50,color:#fff
+    style ARTIFACT fill:#9C27B0,color:#fff
+    style MANUAL fill:#FF9800,color:#fff
+    style SMOKE fill:#4CAF50,color:#fff
 ```
-
----
 
 ## 3. Pipeline Strategy
 
-| Aspect | Choice | Rationale |
-|--------|--------|-----------|
-| CI Platform | GitHub Actions | Free for public repos, tight GitHub integration |
-| Container Registry | GHCR (`ghcr.io`) | No extra auth for GitHub repos, same ecosystem |
-| Deploy Method | SSH + `docker compose pull && up` | Simple, no orchestrator needed for 2 containers |
-| Branch Strategy | `main` = production, PRs = CI only | Single developer, no staging environment |
-| Image Tagging | SHA-based (`sha-abc1234`) + `latest` | Immutable tags for rollback, `latest` for convenience |
+| Aspect | Phase 1 Choice | Rationale |
+|--------|----------------|-----------|
+| CI Platform | GitHub Actions | PR checks and artifact builds |
+| Registry | GHCR | Existing repository ecosystem |
+| Production deploy | Manual approved Compose run | Prevent unreviewed schema/provider/privacy changes from deploying |
+| Branches | `main`, `develop`, feature branches | Project plan workflow |
+| Image tags | Immutable SHA + release tag | Rollback and traceability |
+| Database | Service PostgreSQL in CI | Migration/transaction tests |
+| Provider | Mock EasyDonate in CI; real provider test manually | Protect credentials and avoid accidental donations |
+| YouTube | No API/OAuth tests in active MVP | Subscriber polling removed |
 
----
+## 4. Backend CI Checks
 
-## 4. Pipeline — Backend (`deerngo-bot`)
+Required checks for `oat431/deerngo-bot`:
 
-### 4.1 Workflow File
+```bash
+gofmt -l . | tee /tmp/fmt-check
+test ! -s /tmp/fmt-check
+go vet ./...
+golangci-lint run
+go test -race -cover ./...
+govulncheck ./...
+go build ./cmd/server
+# Run migration up/down against isolated PostgreSQL
+git diff --check
+```
+
+Test focus:
+
+- member normalization and active uniqueness
+- same/changed-handle registration transaction
+- visibility and identity-based point API
+- EasyDonate payload validation/path-token fallback
+- reference idempotency and exactly-once points
+- cutoff and exact matching
+- public response allowlist
+- log redaction
+
+No real API key, provider secret, donor name, or production URL is required in CI.
+
+## 5. Frontend CI Checks
+
+Required checks for `oat431/deerngo-web`:
+
+```bash
+npm ci
+npm run lint
+npm run type-check
+npm test -- --run
+npm run build
+```
+
+Test focus:
+
+- allowlisted scoreboard fields only
+- no display-name rendering
+- private/inactive/zero-point data not rendered
+- loading/empty/error/retry states
+- pagination and refresh
+- responsive/accessibility behavior
+
+## 6. Example PR Workflow
 
 ```yaml
-# .github/workflows/ci-cd.yml  (in deerngo-bot repo)
-name: CI/CD — Backend
+name: PR Checks
 
 on:
-  push:
-    branches: [main]
   pull_request:
-    branches: [main]
-
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+    branches: [develop, main]
 
 jobs:
-  lint-and-test:
+  backend:
+    if: contains(github.repository, 'deerngo-bot')
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -122,358 +139,88 @@ jobs:
           --health-retries 5
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
-
-      - name: Install linting tools
-        run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-
-      - name: Lint
-        run: golangci-lint run
-
-      - name: Format check
-        run: |
-          gofmt -l . | tee /tmp/fmt-check
-          test ! -s /tmp/fmt-check
-
-      - name: Run tests
+          go-version-file: go.mod
+      - run: gofmt -l . | tee /tmp/fmt && test ! -s /tmp/fmt
+      - run: go vet ./...
+      - run: go test -race -cover ./...
         env:
           DATABASE_URL: postgres://postgres:test@localhost:5432/deerngo_test?sslmode=disable
-        run: go test -v -cover ./...
+      - run: go build ./cmd/server
 
-      - name: Build binary
-        run: go build -o /dev/null ./cmd/server
-
-  build-and-push:
-    needs: lint-and-test
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: docker/setup-buildx-action@v3
-
-      - uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Generate image metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=sha,prefix=
-            type=raw,value=latest
-
-      - uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-  deploy:
-    needs: build-and-push
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    steps:
-      - name: Deploy to homelab via SSH
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.HOMELAB_HOST }}
-          username: ${{ secrets.HOMELAB_USER }}
-          key: ${{ secrets.HOMELAB_SSH_KEY }}
-          script: |
-            cd ~/platform
-            docker compose -f docker-compose.deerngo.yml pull deerngo-bot
-            docker compose -f docker-compose.deerngo.yml up -d deerngo-bot
-            sleep 5
-            curl -sf http://localhost:8008/api/v1/health || exit 1
-            echo "Backend deployed and healthy"
-```
-
-### 4.2 Pipeline Stages — Backend
-
-| Stage | Purpose | Duration | Failure Action |
-|-------|---------|---------|---------------|
-| Lint | `golangci-lint` + `gofmt` check | < 1 min | Block merge |
-| Test | Unit + integration tests (PostgreSQL service) | < 3 min | Block merge |
-| Build Binary | `go build` sanity check | < 1 min | Block merge |
-| Docker Build | Multi-stage image → GHCR | < 3 min | Alert |
-| Deploy | SSH → `docker compose pull && up` | < 2 min | Alert + manual check |
-| Smoke Test | `curl /api/v1/health` | < 10s | Alert + rollback |
-
----
-
-## 5. Pipeline — Frontend (`deerngo-web`)
-
-### 5.1 Workflow File
-
-```yaml
-# .github/workflows/ci-cd.yml  (in deerngo-web repo)
-name: CI/CD — Frontend
-
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
-
-jobs:
-  lint-and-test:
+  frontend:
+    if: contains(github.repository, 'deerngo-web')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: 'npm'
-
+          cache: npm
       - run: npm ci
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Type check
-        run: npm run type-check
-
-      - name: Unit tests
-        run: npm test -- --run
-
-      - name: Build
-        run: npm run build
-
-  build-and-push:
-    needs: lint-and-test
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: docker/setup-buildx-action@v3
-
-      - uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Generate image metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=sha,prefix=
-            type=raw,value=latest
-
-      - uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-  deploy:
-    needs: build-and-push
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    steps:
-      - name: Deploy to homelab via SSH
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.HOMELAB_HOST }}
-          username: ${{ secrets.HOMELAB_USER }}
-          key: ${{ secrets.HOMELAB_SSH_KEY }}
-          script: |
-            cd ~/platform
-            docker compose -f docker-compose.deerngo.yml pull deerngo-web
-            docker compose -f docker-compose.deerngo.yml up -d deerngo-web
-            sleep 5
-            curl -sf http://localhost:3008 || exit 1
-            echo "Frontend deployed and healthy"
+      - run: npm run lint
+      - run: npm run type-check
+      - run: npm test -- --run
+      - run: npm run build
 ```
 
-### 5.2 Pipeline Stages — Frontend
+> In the real repository, split jobs/workflows as appropriate. Do not copy this example blindly without verifying the current scaffold.
 
-| Stage | Purpose | Duration | Failure Action |
-|-------|---------|---------|---------------|
-| Lint | ESLint | < 1 min | Block merge |
-| Type Check | `tsc --noEmit` | < 1 min | Block merge |
-| Test | Vitest unit tests | < 2 min | Block merge |
-| Build | `next build` | < 3 min | Block merge |
-| Docker Build | Multi-stage image → GHCR | < 3 min | Alert |
-| Deploy | SSH → `docker compose pull && up` | < 2 min | Alert |
-| Smoke Test | `curl http://localhost:3008` | < 10s | Alert |
+## 7. GHCR Build Artifact
 
----
+Build/push may occur after protected-branch checks:
 
-## 6. GitHub Secrets Required
+- backend: `ghcr.io/oat431/deerngo-bot:<sha>`
+- frontend: `ghcr.io/oat431/deerngo-web:<sha>`
 
-| Secret | Repository | Description | Rotation |
-|--------|-----------|-------------|----------|
-| `HOMELAB_HOST` | Both | Homelab server IP / Tailscale hostname | On network change |
-| `HOMELAB_USER` | Both | SSH username (`flowero`) | — |
-| `HOMELAB_SSH_KEY` | Both | SSH private key for deploy | Quarterly |
-| `GITHUB_TOKEN` | Both | Auto-provided by GitHub Actions | Automatic |
+Use least-privilege `GITHUB_TOKEN` permissions (`contents: read`, `packages: write` only for artifact job). Do not place EasyDonate or database secrets in GitHub Actions unless a later approved deployment design requires them.
 
-> **Note:** `GITHUB_TOKEN` is automatically available — no manual setup needed. The other 3 secrets must be added to each repo's Settings → Secrets → Actions.
+## 8. Manual Production Deployment Gate
 
----
+Before production:
 
-## 7. Environment Configuration
+1. Review/merge PR to approved branch.
+2. Build or pull immutable images.
+3. Back up PostgreSQL.
+4. Confirm active migration and provider contract.
+5. Apply migration.
+6. Deploy backend/frontend manually.
+7. Run `/healthz`, API, public-data-allowlist, and synthetic smoke tests.
+8. Verify streamer.bot integration during an approved live/test session.
+9. Record outcome in release notes/meeting minute.
 
-| Environment | Branch | Auto-Deploy | Approval | URL |
-|------------|--------|------------|---------|-----|
-| Local Dev | feature branches | No | — | `localhost:8008` / `localhost:3008` |
-| Production | `main` | Yes (on push) | No (single dev) | `deerngo-viewer-score.panomete.com` |
+No automatic deploy on push to `main` is required for Phase 1.
 
-> **Note:** Phase 1 has no staging environment. The homelab IS production. Local Docker Compose serves as the dev/test environment. A staging environment can be added in Phase 2 if needed.
+## 9. Secrets
 
----
+| Secret | Where | Rule |
+|--------|-------|------|
+| `DATABASE_URL` | Homelab secret store | Never CI logs/Git |
+| `EASYDONATE_API_KEY` | Homelab backend secret | Never browser/CI output |
+| `EASYDONATE_WEBHOOK_PATH_TOKEN` | Homelab/backend + provider dashboard | Never issue/docs/logs |
+| Provider signature secret | Only if confirmed | Store as secret; exact scheme only |
+| SSH deploy key | Future CI/CD only | Not needed for Phase 1 manual path |
 
-## 8. Docker Compose — Production (Homelab)
+## 10. Rollback
 
-```yaml
-# docker-compose.deerngo.yml  (on homelab server at ~/platform/)
-services:
-  deerngo-bot:
-    image: ghcr.io/deerngo/deerngo-bot:latest
-    container_name: deerngo-bot
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:8008:8008"
-    environment:
-      - DATABASE_URL=${DERNBOT_DATABASE_URL}
-      - PORT=8008
-      - EASYDONATE_WEBHOOK_SECRET=${EASYDONATE_WEBHOOK_SECRET}
-      - YOUTUBE_CHANNEL_ID=${YOUTUBE_CHANNEL_ID}
-      - SCOREBOARD_ORIGIN=https://deerngo-viewer-score.panomete.com
-    networks:
-      - db-network
-    depends_on:
-      local-postgres:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8008/api/v1/health"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
-
-  deerngo-web:
-    image: ghcr.io/deerngo/deerngo-web:latest
-    container_name: deerngo-web
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:3008:3008"
-    environment:
-      - NEXT_PUBLIC_API_URL=http://deerngo-bot:8008
-    networks:
-      - db-network
-    depends_on:
-      - deerngo-bot
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3008"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 15s
-
-networks:
-  db-network:
-    external: true
-```
-
----
-
-## 9. Nginx Configuration (Host-Level)
-
-```nginx
-# /etc/nginx/sites-available/deerngo-scoreboard
-server {
-    listen 80;
-    server_name deerngo-viewer-score.panomete.com;
-
-    location / {
-        proxy_pass http://127.0.0.1:3008;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto https;
-    }
-}
-```
-
-> The Go backend (`:8008`) is NOT exposed via Nginx — it's internal-only (LAN + Docker network). Only the frontend scoreboard is publicly accessible.
-
----
-
-## 10. Rollback Procedure
-
-```bash
-# On homelab server — rollback to previous image
-cd ~/platform
-
-# Check available image tags
-docker images ghcr.io/deerngo/deerngo-bot --format "{{.Tag}} {{.CreatedAt}}"
-
-# Rollback: re-deploy with specific SHA tag
-# Edit docker-compose.deerngo.yml to pin the known-good tag:
-#   image: ghcr.io/deerngo/deerngo-bot:sha-abc1234
-docker compose -f docker-compose.deerngo.yml up -d
-
-# Verify
-curl http://localhost:8008/api/v1/health
-curl http://localhost:3008
-```
-
-> **Key principle:** Every deploy is reversible. The SHA-based image tag is the rollback target. Never delete old images from GHCR — let retention policy handle cleanup.
-
----
-
-## 11. Pipeline Health
-
-| Metric | Target | Measurement |
-|--------|--------|------------|
-| Pipeline success rate | > 95% | GitHub Actions insights |
-| Build duration (total) | < 10 min | GitHub Actions timing |
-| Deploy duration | < 5 min | SSH action timing |
-| Time from commit to production | < 15 min | Push timestamp → deploy log |
-
----
+- Prefer rolling back immutable application images without rolling back database migrations.
+- If migration/data integrity is implicated, stop writes, preserve logs/backups, and follow the runbook recovery procedure.
+- Do not auto-run destructive migration down.
 
 ## Related Documents
 
 | Document | Relationship |
 |----------|-------------|
-| [[052_deployment_plan]] | Manual deployment procedures (fallback) |
-| [[053_release_notes]] | Release details per version |
-| [[032_BE_build_scripts]] | Backend Makefile + Dockerfile |
-| [[032_FE_build_scripts]] | Frontend npm scripts + Dockerfile |
-| [[034_SHARED_commit_messages_changelog]] | Conventional commits (input for release notes) |
+| [[052_deployment_plan]] | Current manual deployment decision |
+| [[054_operations_manual_runbook]] | Operations/rollback/backup |
+| [[061_security_test_report]] | Security gates |
+| [[035_BE_coding_standards]] | Code quality/security rules |
+| `external_plan/phase1-deerngo-bot-mvp.md` | Sprint and deployment plan |
 
 ---
 
-> **Template Standard:** Based on SWEBOK v4, 12-Factor App
-> **Usage:** The pipeline is *the single path to production*. If it's not in the pipeline, it doesn't ship.
+> **Template Standard:** Based on SWEBOK v4 and 12-Factor App
+> **Usage:** Optional CI/build source of truth; production deployment remains manually gated during Phase 1.
+---
+

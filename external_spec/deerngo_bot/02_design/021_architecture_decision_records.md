@@ -1,15 +1,15 @@
 ---
 document_type: ADR (Architecture Decision Records)
-version: "0.1"
+version: "0.2"
 status: Draft
-author: "SA / Designer Persona"
+author: "PO / SA / Dev"
 created: "2026-07-29"
-last_updated: "2026-07-29"
+last_updated: "2026-08-02"
 project_name: "Deerngo Bot"
 project_id: "DERNBOT-001"
-architect: "SA / Designer Persona"
+architect: "SA / Dev"
 classification: "Internal"
-tags: [adr, architecture-decisions, rationale, swebok, sebok, iso-42010, vrm]
+tags: [adr, architecture-decisions, members, points, privacy, easydonate, vrm]
 standard_ref:
   - SWEBOK v4 — Architecture
   - SEBoK v2 — System Architecture
@@ -17,540 +17,210 @@ standard_ref:
 parent_project: "Deerngo Bot — VRM"
 ---
 
-# ADR (Architecture Decision Records)
+# Architecture Decision Records
 
 > **Project:** Deerngo Bot — Viewer Relationship Management (VRM)
-> **Version:** 0.1 | **Status:** Draft
-> **Last Updated:** 2026-07-29
-
----
-
-## Document Control
-
-| Field | Value |
-|-------|-------|
-| Document Owner | SA / Designer Persona |
-| Solution Architect | SA / Designer Persona |
-| Stakeholder | Deer_NGO (YouTube Creator) |
-
-### Revision History
-
-| Version | Date | Author | Change Description |
-|---------|------|--------|--------------------|
-| 0.1 | 2026-07-29 | SA | Initial draft — formalize DEC-001 → DEC-007 from PO handoff + resolve DEC-D01 → DEC-D05 |
-
----
-
-## 1. Purpose
-
-> Architecture Decision Records (ADRs) capture significant architectural decisions along with their context and consequences. Each ADR answers: "What did we decide, why, and what are the trade-offs?"
+> **Version:** 0.2 | **Status:** Draft
+> **Last Updated:** 2026-08-02
 >
-> This document formalizes 12 decisions: 7 inherited from the PO's stakeholder grill session (DEC-001 → DEC-007) and 5 design-level decisions (DEC-D01 → DEC-D05) resolved during the PO → Designer handoff.
+> **Scope change:** The original subscriber-observation architecture was superseded after live YouTube API verification showed that only a limited subscriber subset is exposed. Phase 1 now uses explicit member registration through streamer.bot.
 
 ---
 
-## 2. ADR Index
+## 1. Decision Index
 
-| ADR | Title | Status | Date | Decision |
-|-----|-------|--------|------|----------|
-| ADR-001 | Go Backend Language | ✅ Accepted | 2026-07-29 | Use Go for the backend service |
-| ADR-002 | PostgreSQL 18 Database | ✅ Accepted | 2026-07-29 | Use existing PostgreSQL 18 homelab instance |
-| ADR-003 | React/Next.js Frontend | ✅ Accepted | 2026-07-29 | Use React with Next.js for public scoreboard |
-| ADR-004 | Homelab Deployment | ✅ Accepted | 2026-07-29 | Go + Next.js on homelab Docker; streamer.bot on local Windows PC |
-| ADR-005 | Hybrid Subscriber Capture | ✅ Accepted | 2026-07-29 | YouTube API polling (24/7) + streamer.bot (real-time during live) |
-| ADR-006 | Fuzzy Name Matching | ✅ Accepted | 2026-07-29 | Match donation names to YouTube handles via fuzzy matching |
-| ADR-007 | EasyDonate Webhook Primary | ✅ Accepted | 2026-07-29 | Webhook for donation events; REST API as fallback |
-| ADR-008 | sqlx for Database Access | ✅ Accepted | 2026-07-29 | Use sqlx (extends database/sql) instead of GORM or raw sql |
-| ADR-009 | Fiber Web Framework | ✅ Accepted | 2026-07-29 | Use Fiber (fasthttp-based) instead of Gin, Echo, or stdlib |
-| ADR-010 | Tailwind CSS + DaisyUI | ✅ Accepted | 2026-07-29 | Use Tailwind CSS with DaisyUI component library |
-| ADR-011 | Cloudflare Tunnel for Public Access | ✅ Accepted | 2026-07-29 | Expose scoreboard via existing Cloudflare Tunnel |
-| ADR-012 | HMAC-SHA256 Webhook Verification | ✅ Accepted | 2026-07-29 | Verify EasyDonate webhooks with HMAC-SHA256 signatures |
-
----
-
-## 3. ADR-001: Go Backend Language
-
-| Field | Detail |
-|-------|--------|
-| **Status** | ✅ Accepted |
-| **Date** | 2026-07-29 |
-| **Decision Makers** | Stakeholder (Deer_NGO), PO |
-| **Source** | DEC-001 (PO grill session) |
-
-### Context
-
-> The VRM system needs a backend service that handles API requests, scheduled polling (YouTube API, EasyDonate), database interaction, and name matching logic. The stakeholder is comfortable with Go and values lightweight, fast services.
-
-### Decision
-
-> Use Go as the backend language. Single binary deployment, no runtime dependency, excellent concurrency primitives for handling polling schedulers and webhook receivers concurrently.
-
-### Consequences
-
-**Positive:**
-- Single binary — easy deployment on Windows, no dependency management at runtime
-- Excellent goroutine-based concurrency for polling schedulers + webhook server
-- Fast startup time — suitable for a service that may restart frequently on a dev machine
-- Strong standard library for HTTP, JSON, SQL
-
-**Negative:**
-- More boilerplate than dynamic languages for simple CRUD
-- Smaller ecosystem of "batteries included" frameworks compared to Node.js or Python
-- Error handling verbosity (explicit error returns)
-
-### Alternatives Considered
-
-| Alternative | Why Not |
-|------------|---------|
-| Node.js / TypeScript | Stakeholder prefers Go; runtime dependency management on Windows |
-| Python | Slower runtime; stakeholder not comfortable with it |
-| Rust | Overkill for this project; steep learning curve |
+| ADR | Title | Status | Decision |
+|-----|-------|--------|----------|
+| ADR-001 | Go Backend | ✅ Accepted | Use Go for the backend |
+| ADR-002 | PostgreSQL 18 | ✅ Accepted | Use the existing homelab PostgreSQL |
+| ADR-003 | Next.js Frontend | ✅ Accepted | Use Next.js + React for the public scoreboard |
+| ADR-004 | Homelab Deployment | ✅ Accepted | Backend/frontend in homelab Docker; streamer.bot on Windows |
+| ADR-005 | Explicit Member Registration | ✅ Accepted | `:deer: register` creates members from actual streamer.bot identity |
+| ADR-006 | Normalized Exact Matching | ✅ Accepted | Match donor name to active member handle after trim/@ removal/lowercase |
+| ADR-007 | EasyDonate Ingestion | ✅ Accepted | Webhook primary + API polling fallback; provider auth must be verified |
+| ADR-008 | sqlx | ✅ Accepted | Use sqlx for PostgreSQL access |
+| ADR-009 | Fiber v3 | ✅ Accepted | Use Fiber v3 for HTTP API |
+| ADR-010 | Tailwind + DaisyUI | ✅ Accepted | Use approved frontend design system |
+| ADR-011 | Cloudflare Tunnel | ✅ Accepted | Use existing tunnel for public web/webhook routes |
+| ADR-012 | HMAC Webhook Verification | ⚠️ Superseded | Do not assume HMAC until EasyDonate confirms support |
+| ADR-013 | Stable Member Identity | ✅ Accepted | Store streamer.bot user ID; member_id is record primary key |
+| ADR-014 | Re-registration | ✅ Accepted | New handle creates inactive old record + new active zero-point record |
+| ADR-015 | Visibility and Point Bands | ✅ Accepted | Public/private commands; private members receive 100-point ranges in chat |
+| ADR-016 | Public Data Minimization | ✅ Accepted | No display names; scoreboard exposes only current handle and points |
 
 ---
 
-## 4. ADR-002: PostgreSQL 18 Database
+## 2. ADR-001: Go Backend
 
-| Field | Detail |
-|-------|--------|
-| **Status** | ✅ Accepted |
-| **Date** | 2026-07-29 |
-| **Decision Makers** | Stakeholder (Deer_NGO), PO |
-| **Source** | DEC-002 (PO grill session) |
+**Decision:** Use Go for the backend.
 
-### Context
+**Rationale:** Go is lightweight, familiar to the developer, and suitable for HTTP handlers, database access, donation ingestion, and concurrent background work.
 
-> The system needs a relational database to store subscribers, donations, and viewer points. The stakeholder has PostgreSQL 18 running on their homelab, shared with other projects (Panomete platform).
-
-### Decision
-
-> Use the existing PostgreSQL 18 instance. Create a dedicated `deerngo` database. Enable the `pg_trgm` extension for fuzzy name matching.
-
-### Consequences
-
-**Positive:**
-- No additional infrastructure cost or setup
-- Proven, reliable RDBMS with excellent JSON support
-- `pg_trgm` extension enables efficient fuzzy matching directly in SQL
-- Shared infrastructure — backups already in place
-
-**Negative:**
-- Shared instance — resource contention with other databases under heavy load
-- No isolation from other projects (homelab, not enterprise-grade)
-- Must coordinate schema migrations with homelab maintenance windows
-
-### Alternatives Considered
-
-| Alternative | Why Not |
-|------------|---------|
-| SQLite | No network access; single-file limitation; concurrent write issues |
-| MySQL | Weaker JSON support; no `pg_trgm` equivalent |
-| Dedicated PostgreSQL container | Unnecessary overhead — existing instance is sufficient |
+**Consequences:** Single binary/container, explicit error handling, and a small operational footprint. The backend must still be modular so member, donation, and points behavior remain testable.
 
 ---
 
-## 5. ADR-003: React/Next.js Frontend
+## 3. ADR-002: PostgreSQL 18
 
-| Field | Detail |
-|-------|--------|
-| **Status** | ✅ Accepted |
-| **Date** | 2026-07-29 |
-| **Decision Makers** | Stakeholder (Deer_NGO), PO |
-| **Source** | DEC-003 (PO grill session) |
+**Decision:** Use the existing PostgreSQL 18 homelab instance and dedicated `deerngo` database.
 
-### Context
+**Rationale:** Existing infrastructure, relational constraints, transactions, backups, and reliable concurrent writes.
 
-> The public scoreboard needs a web frontend that renders a ranked list of viewers by points. It must be mobile-friendly, load fast (<2s), and be accessible to anyone on the internet.
-
-### Decision
-
-> Use React with Next.js (App Router). Server-side rendering for fast initial load. Static generation where possible — the scoreboard data changes frequently but the page structure is static.
-
-### Consequences
-
-**Positive:**
-- Fast page loads via SSR/SSG — meets the <2s target
-- Excellent mobile responsiveness with Tailwind/DaisyUI
-- Large ecosystem — easy to find components and solutions
-- SEO-friendly (public page, discoverable)
-
-**Negative:**
-- Node.js runtime requirement on the deployment machine
-- Heavier than a plain HTML/JS page for a simple scoreboard
-- Next.js framework overhead for what is essentially a single-page read-only app
-
-### Alternatives Considered
-
-| Alternative | Why Not |
-|------------|---------|
-| Plain HTML + Vanilla JS | Too low-level; no component reuse; harder to maintain |
-| Vue.js / Nuxt | Stakeholder more familiar with React ecosystem |
-| Svelte / SvelteKit | Smaller ecosystem; less community support |
+**Consequences:** Migrations must be versioned. Manual corrections require a transaction, backup awareness, and a correction note.
 
 ---
 
-## 6. ADR-004: Homelab Deployment with streamer.bot on Local PC
+## 4. ADR-003: Next.js Frontend
 
-| Field | Detail |
-|-------|--------|
-| **Status** | ✅ Accepted |
-| **Date** | 2026-07-29 |
-| **Decision Makers** | Stakeholder (Deer_NGO), PO, SA |
-| **Source** | DEC-004 (PO grill session), corrected after infrastructure review |
+**Decision:** Use Next.js/React with Tailwind CSS and DaisyUI for the public scoreboard.
 
-### Context
+**Rationale:** The project already has the scaffold and design system; it supports responsive, read-only rendering.
 
-> streamer.bot runs on the stakeholder's local Windows PC (it's a Windows desktop app). The Go backend, Next.js frontend, and PostgreSQL all run on the homelab server (Ubuntu 26.04, Docker). The Go backend needs to receive events from streamer.bot over LAN. The scoreboard needs to be accessible publicly.
-
-### Decision
-
-> Deploy the Go backend and Next.js frontend as Docker containers on the homelab server, connected to the existing `db-network` Docker network. Cloudflare Tunnel (running as systemd service on the homelab) exposes the scoreboard publicly. streamer.bot on the local Windows PC communicates with the Go backend over LAN (`192.168.1.121:8008`).
-
-### Consequences
-
-**Positive:**
-- Go backend and PostgreSQL on the same Docker network (`db-network`) — fast, reliable DB access
-- Cloudflare Tunnel already running as systemd service — just add a public hostname
-- Homelab has Docker Compose — easy to add deerngo-bot to the stack
-- No cloud hosting cost
-- `deerngo` database already exists in PostgreSQL
-
-**Negative:**
-- streamer.bot → Go backend is a LAN call (~1ms), not localhost — requires stable LAN IP
-- Homelab firewall must allow port 8080 from the Windows PC
-- Single point of failure — homelab down = backend + scoreboard down
-- No CI/CD pipeline for Phase 1
-
-### Alternatives Considered
-
-| Alternative | Why Not |
-|------------|---------|
-| All on Windows PC | Windows is for streamer.bot only; homelab already has Docker + PostgreSQL |
-| Cloud VPS (AWS/GCP/Azure) | Ongoing cost; DB already on homelab |
-| Go backend on Windows, DB on homelab | Split deployment complexity; Docker Compose on homelab is simpler |
+**Consequences:** The frontend consumes the backend public scoreboard contract and must never implement its own points or matching logic.
 
 ---
 
-## 7. ADR-005: Hybrid Subscriber Capture
+## 5. ADR-004: Homelab Deployment
 
-| Field | Detail |
-|-------|--------|
-| **Status** | ✅ Accepted |
-| **Date** | 2026-07-29 |
-| **Decision Makers** | Stakeholder (Deer_NGO), PO |
-| **Source** | DEC-005 (PO grill session) |
+**Decision:** Deploy Go backend and Next.js frontend in homelab Docker on `db-network`. Keep streamer.bot on the streamer's Windows PC. Use LAN HTTP from streamer.bot to the backend.
 
-### Context
+**Rationale:** PostgreSQL and the public tunnel already exist in the homelab; streamer.bot is a Windows desktop application.
 
-> Subscribers can join at any time — during live streams and outside of them. streamer.bot only captures events during live streams. YouTube Data API can poll 24/7 but has quota limits (10,000 units/day). Neither source alone provides complete coverage.
-
-### Decision
-
-> Use a hybrid approach: YouTube Data API polling every 15 minutes for 24/7 coverage (primary), streamer.bot real-time push during live streams (secondary/backup). Upsert logic deduplicates by `youtube_handle`, preserving the earliest subscription timestamp.
-
-### Consequences
-
-**Positive:**
-- 100% subscriber capture coverage — no gaps between live streams
-- Real-time capture during live streams (streamer.bot) — <5s latency
-- API polling catches everyone else — 15min max delay
-- Upsert deduplication — no data conflicts
-
-**Negative:**
-- Two code paths to maintain (API poller + webhook receiver)
-- Upsert logic must handle timestamp conflicts correctly
-- YouTube API quota must be monitored (96 calls/day at 15-min intervals is well within 10K limit, but must not accidentally poll more frequently)
-
-### Alternatives Considered
-
-| Alternative | Why Not |
-|------------|---------|
-| YouTube API only | 15-min delay during live streams; viewers expect real-time recognition |
-| streamer.bot only | Misses subscribers who join outside live streams |
-| Webhooks (YouTube PubSubHubbub) | Complex setup; requires publicly accessible endpoint with verification |
+**Consequences:** The backend must be reachable from the Windows PC at the configured LAN address. The public tunnel must expose only approved web/webhook routes.
 
 ---
 
-## 8. ADR-006: Fuzzy Name Matching
+## 6. ADR-005: Explicit Member Registration
 
-| Field | Detail |
-|-------|--------|
-| **Status** | ✅ Accepted |
-| **Date** | 2026-07-29 |
-| **Decision Makers** | Stakeholder (Deer_NGO), PO |
-| **Source** | DEC-006 (PO grill session) |
+**Status:** Accepted; supersedes the former hybrid subscriber-capture decision.
 
-### Context
+**Decision:** Do not use YouTube subscriber polling or automatic subscriber events as the Phase 1 membership source. A viewer joins by typing `:deer: register` during live chat.
 
-> Donation names from EasyDonate may not exactly match YouTube subscriber handles. For example, a donation from "deer123" should match subscriber "@deer123". The system needs to handle case differences, leading/trailing whitespace, and the `@` prefix.
+**Identity input:** streamer.bot supplies the actual chat author's user ID and current handle. A handle typed in the command text is ignored.
 
-### Decision
+**Rationale:** Live testing showed the YouTube Data API returned 172 of 1,310 subscribers. Explicit registration is complete for the intended VRM membership event and avoids importing unnecessary identities/display names.
 
-> Use PostgreSQL `pg_trgm` extension for fuzzy matching at the database level. Normalize handles by stripping `@`, lowercasing, and trimming whitespace before comparison. Use `similarity()` function with a configurable threshold (default 0.7). Flag low-confidence matches and anonymous donations as "unmatched" for manual review.
-
-### Consequences
-
-**Positive:**
-- Matching happens in SQL — no data transfer to Go for comparison
-- `pg_trgm` is battle-tested and fast with GIN indexes
-- Configurable threshold — can tune sensitivity
-- Manual review queue for edge cases
-
-**Negative:**
-- `pg_trgm` extension must be enabled on the PostgreSQL instance
-- False positives possible with very short or common names
-- Manual review adds operational overhead for unmatched donations
-
-### Alternatives Considered
-
-| Alternative | Why Not |
-|------------|---------|
-| Levenshtein distance in Go | Requires fetching all subscriber handles for comparison; doesn't scale as well |
-| Exact match only | Too restrictive — donation names rarely match YouTube handles exactly |
-| ML-based matching | Overkill for this use case; no training data |
+**Consequences:** Registration is available only while streamer.bot and the live chat integration are active. A viewer who registers starts at zero points. The old `subscribers` table, YouTube poller, and YouTube OAuth path are not active MVP components.
 
 ---
 
-## 9. ADR-007: EasyDonate Webhook Primary
+## 7. ADR-006: Normalized Exact Matching
 
-| Field | Detail |
-|-------|--------|
-| **Status** | ✅ Accepted |
-| **Date** | 2026-07-29 |
-| **Decision Makers** | Stakeholder (Deer_NGO), PO |
-| **Source** | DEC-007 (PO grill session) |
+**Decision:** Use normalized exact matching for Phase 1 member points.
 
-### Context
+```text
+normalize(value) = trim whitespace → remove one leading @ → lowercase
+```
 
-> Donation events need to flow from EasyDonate to the Go backend. EasyDonate supports both webhooks (push) and REST API (pull). The webhook provides real-time delivery; the REST API can serve as a fallback for missed events.
+A donation earns points only when the normalized EasyDonate donor name equals the normalized handle of exactly one active member and `donation_time >= registered_at`.
 
-### Decision
+**Rationale:** Exact matching follows the channel owner's published rule and avoids fuzzy false positives that could assign money/points to the wrong person.
 
-> Use EasyDonate webhook as the primary donation event source. Configure a webhook endpoint on the Go backend. Use the EasyDonate REST API as a fallback — poll periodically (e.g., every 5 minutes) to catch any webhook misses. Use `easydonate_id` as the idempotency key.
+**Consequences:** Donors must use their registered YouTube handle as their EasyDonate name. Unmatched, inactive, and pre-registration donations remain uncredited.
 
-### Consequences
-
-**Positive:**
-- Real-time donation processing — points update within seconds
-- Webhook reduces API polling load (stays well under 60 req/min limit)
-- Fallback polling ensures no donation is missed even if webhook fails
-- Idempotent sync prevents duplicate processing
-
-**Negative:**
-- Webhook endpoint must be publicly accessible (via Cloudflare Tunnel)
-- Webhook delivery is not guaranteed — must handle failures gracefully
-- Two ingestion paths to maintain and test
-
-### Alternatives Considered
-
-| Alternative | Why Not |
-|------------|---------|
-| REST API polling only | Up to 5-min delay; higher API usage; rate limit risk |
-| Webhook only | No fallback if webhook delivery fails silently |
-| WebSocket | EasyDonate doesn't support WebSocket for donation events |
+> The former `pg_trgm` fuzzy-matching decision is superseded for the active MVP path.
 
 ---
 
-## 10. ADR-008: sqlx for Database Access
+## 8. ADR-007: EasyDonate Webhook Primary
 
-| Field | Detail |
-|-------|--------|
-| **Status** | ✅ Accepted |
-| **Date** | 2026-07-29 |
-| **Decision Makers** | SA / Designer Persona |
-| **Source** | DEC-D01 (PO → Designer handoff) |
+**Decision:** Use EasyDonate webhook as the primary donation ingestion path and EasyDonate REST API polling as fallback reconciliation.
 
-### Context
+**Rationale:** Webhook provides low-latency events; polling can recover missed events.
 
-> The Go backend needs to interact with PostgreSQL for CRUD operations, upsert logic, and fuzzy matching queries. The team needs a database access layer that is lean, type-safe, and doesn't add heavy dependencies.
+**Provider contract rule:** Current public EasyDonate documentation confirms webhook URL configuration and payload examples, and documents API-key/Bearer authentication for the API. It does not confirm HMAC or an `X-EasyDonate-Signature` header. The implementation must verify the actual dashboard/provider contract before enabling provider-specific signature validation.
 
-### Decision
+**MVP fallback protection if no provider signing exists:** unpredictable webhook path token, strict payload validation, request-size limit, rate limiting, and idempotency by `referenceNo`.
 
-> Use `sqlx` (github.com/jmoiron/sqlx) — a library that extends Go's standard `database/sql` with struct scanning, named parameters, and bulk operations. Write SQL queries directly (no ORM magic, no code generation).
-
-### Consequences
-
-**Positive:**
-- Thin layer over `database/sql` — minimal abstraction, full SQL control
-- Struct scanning maps rows to Go structs automatically
-- Named parameters (`:handle`) improve query readability
-- No code generation step — faster iteration
-- Easy to debug — SQL is visible in code, not hidden behind ORM
-
-**Negative:**
-- No automatic migrations (must use a separate tool like `golang-migrate`)
-- No compile-time query validation (unlike sqlc)
-- Manual struct tag management for column mapping
-
-### Alternatives Considered
-
-| Alternative | Why Not |
-|------------|---------|
-| GORM | Heavy abstraction; magic behavior; harder to debug complex queries |
-| sqlc | Code generation step adds build complexity; overkill for this project size |
-| Raw `database/sql` | Too much boilerplate for struct scanning and named parameters |
+**Consequences:** The webhook path token is a secret and must be rotated if exposed. Raw donor names/messages stay private. The API key is backend-only and must have the provider's donation-read scope.
 
 ---
 
-## 11. ADR-009: Fiber Web Framework
+## 9. ADR-008: sqlx
 
-| Field | Detail |
-|-------|--------|
-| **Status** | ✅ Accepted |
-| **Date** | 2026-07-29 |
-| **Decision Makers** | SA / Designer Persona |
-| **Source** | DEC-D02 (PO → Designer handoff) |
+**Decision:** Use sqlx over GORM for PostgreSQL access.
 
-### Context
+**Rationale:** Lean access layer, explicit SQL, parameterized queries, and good fit for a small relational schema.
 
-> The Go backend needs an HTTP framework for routing, middleware, request/response handling, and webhook endpoint serving. The API is simple (4 endpoints + webhook) but needs to be performant for real-time chat command responses (<2s latency).
-
-### Decision
-
-> Use Fiber (github.com/gofiber/fiber/v3) — a web framework built on fasthttp. Express-inspired API with built-in middleware for CORS, rate limiting, and request logging.
-
-### Consequences
-
-**Positive:**
-- Fasthttp-based — significantly faster than net/http for high-throughput scenarios
-- Express-like API — familiar if the team has Node.js experience
-- Built-in middleware ecosystem (CORS, limiter, logger, compress)
-- Low memory allocation — suitable for running on a shared machine
-
-**Negative:**
-- Not compatible with `net/http` handlers (fasthttp uses its own context)
-- Some `net/http` middleware doesn't work directly (need Fiber-specific versions)
-- fasthttp has subtle behavior differences from net/http (e.g., request body reuse)
-
-### Alternatives Considered
-
-| Alternative | Why Not |
-|------------|---------|
-| Gin | Similar to Fiber but built on net/http; slightly slower; more popular |
-| Echo | Similar to Gin; less active development recently |
-| Chi | Stdlib-compatible but fewer built-in features; more manual setup |
-| net/http (stdlib) | No built-in middleware; routing requires Go 1.22+; more boilerplate |
+**Consequences:** Repository queries and transactions are explicit and must be covered by integration tests.
 
 ---
 
-## 12. ADR-010: Tailwind CSS + DaisyUI
+## 10. ADR-009: Fiber v3
 
-| Field | Detail |
-|-------|--------|
-| **Status** | ✅ Accepted |
-| **Date** | 2026-07-29 |
-| **Decision Makers** | SA / Designer Persona |
-| **Source** | DEC-D03 (PO → Designer handoff) |
+**Decision:** Use Fiber v3 for HTTP routing and middleware.
 
-### Context
-
-> The public scoreboard needs a clean, responsive UI. It's a single-page read-only app showing a ranked list of viewers. The UI framework should be lightweight, mobile-friendly, and easy to maintain without a dedicated designer.
-
-### Decision
-
-> Use Tailwind CSS for utility-first styling with DaisyUI (daisyui.com) as a component library. DaisyUI provides pre-built components (tables, cards, badges) on top of Tailwind without adding JavaScript dependencies.
-
-### Consequences
-
-**Positive:**
-- Utility-first CSS — fast prototyping, no custom CSS files to maintain
-- DaisyUI components — tables, badges, loading states out of the box
-- No JavaScript overhead — pure CSS components
-- Excellent responsive design with Tailwind breakpoints
-- Small bundle size — only used classes are included (tree-shaking)
-
-**Negative:**
-- Class-heavy HTML — can look cluttered in JSX
-- DaisyUI theme customization requires Tailwind config changes
-- Learning curve for developers new to utility-first CSS
-
-### Alternatives Considered
-
-| Alternative | Why Not |
-|------------|---------|
-| shadcn/ui | Requires React + Radix; heavier for a simple scoreboard |
-| Material UI | Heavy bundle; overkill for a read-only list |
-| Plain CSS / CSS Modules | More manual work; no pre-built components |
-| Bootstrap | jQuery dependency; less modern; harder to customize |
+**Rationale:** Existing scaffold and suitable middleware for validation, CORS, rate limiting, and request-size controls.
 
 ---
 
-## 13. ADR-011: Cloudflare Tunnel for Public Access
+## 11. ADR-010: Tailwind CSS + DaisyUI
 
-| Field | Detail |
-|-------|--------|
-| **Status** | ✅ Accepted |
-| **Date** | 2026-07-29 |
-| **Decision Makers** | SA / Designer Persona |
-| **Source** | DEC-D04 (PO → Designer handoff) |
+**Decision:** Use the approved Tailwind/DaisyUI Deer_NGO theme.
 
-### Context
-
-> The scoreboard must be accessible via the internet, but the Next.js frontend runs on the homelab server behind a NAT/firewall. The homelab already has Cloudflare Tunnel running as a systemd service (`cloudflared.service`).
-
-### Decision
-
-> Use the existing Cloudflare Tunnel on the homelab to expose the scoreboard. Configure a public hostname (e.g., `deerngo-viewer-score.panomete.com` or a subdomain) that tunnels to the local Next.js container at `localhost:3008`. The Go API is accessible only via Docker network (Next.js → Go) and LAN (streamer.bot → Go).
-
-### Consequences
-
-**Positive:**
-- No port forwarding or firewall configuration needed
-- Cloudflare handles TLS termination, DDoS protection, caching
-- Already running — zero additional setup
-- Fast global CDN for static assets
-
-**Negative:**
-- Dependency on Cloudflare service availability
-- Scoreboard goes down if the local machine or internet connection drops
-- Tunnel configuration is outside the Go backend's control
-
-### Alternatives Considered
-
-| Alternative | Why Not |
-|------------|---------|
-| ngrok | Free tier has random URLs; paid tier unnecessary when Cloudflare Tunnel exists |
-| Tailscale Funnel | Less familiar; additional dependency |
-| Port forwarding | Security risk; ISP may block ports; dynamic IP issues |
+**Consequences:** The public UI must implement loading, empty, error, mobile, and privacy-filtered scoreboard states.
 
 ---
 
-## 14. ADR-012: HMAC-SHA256 Webhook Verification
+## 12. ADR-011: Cloudflare Tunnel
 
-| Field | Detail |
-|-------|--------|
-| **Status** | ✅ Accepted |
-| **Date** | 2026-07-29 |
-| **Decision Makers** | SA / Designer Persona |
-| **Source** | DEC-D05 (PO → Designer handoff) |
+**Decision:** Use the existing Cloudflare Tunnel for the public scoreboard and the configured EasyDonate webhook route.
 
-### Context
+**Consequences:** The backend's entire API must not be exposed publicly merely to receive donations. Route exposure must be intentionally limited.
 
-> The Go backend exposes a webhook endpoint for EasyDonate donation events. Without verification, anyone could POST fake donation events to the endpoint, corrupting the points system.
+---
 
-### Decision
+## 13. ADR-012: HMAC Webhook Verification
 
-> Verify EasyDonate webhook payloads using HMAC-SHA256 signatures. EasyDonate signs the request body with a shared secret; the Go backend recomputes the signature and compares. Reject requests with invalid or missing signatures.
+**Status:** Superseded / unverified.
 
-### Consequences
+The original design assumed HMAC-SHA256 and `X-EasyDonate-Signature`. Current public EasyDonate documentation reviewed on 2026-08-02 did not confirm that contract. Do not implement or request `EASYDONATE_WEBHOOK_SECRET` unless the provider dashboard or official provider response confirms it.
 
-**Positive:**
-- Cryptographic verification — cannot be spoofed without the secret
-- Standard approach — well-documented, easy to implement
-- Minimal performance overhead
-- Secret stored as environment variable — not in code
+If EasyDonate later confirms a signing scheme, create a follow-up ADR and update the API/security/test documents before enabling it.
 
-**Negative:**
-- Depends on EasyDonate supporting HMAC-SHA256 (must verify against their docs)
-- Secret must be kept secure — if leaked, verification is bypassed
-- Clock skew not an issue (HMAC doesn't depend on timestamps, but should add timestamp check for replay protection)
+---
 
-### Alternatives Considered
+## 14. ADR-013: Stable Member Identity
 
-| Alternative | Why Not |
-|------------|---------|
-| Shared secret header | Less secure — secret sent in plaintext header; vulnerable to interception |
-| IP whitelist | EasyDonate IPs may change; brittle; doesn't verify payload integrity |
-| No verification | Unacceptable — fake donations would corrupt the points system |
+**Decision:** Store the stable streamer.bot/YouTube user ID on each member record, but use `member_id` as the row primary key.
+
+**Rationale:** A user ID identifies the chat author supplied by streamer.bot, while `member_id` allows the MVP's simple re-registration behavior.
+
+**Consequences:** One active record per user ID; old inactive records may remain for manual point correction. YouTube display name is not stored.
+
+---
+
+## 15. ADR-014: Re-registration and Handle Changes
+
+**Decision:** Same-handle registration is idempotent. A changed handle creates a new active member with zero points and marks the old member inactive, preserving old points without automatic transfer.
+
+**Rationale:** Avoid complex alias history/admin UI in Phase 1. The channel owner/back-office worker can manually correct points later.
+
+**Consequences:** A handle is unique among active members. A conflict with another active user is rejected. Inactive records are hidden from matching, point queries, and scoreboard.
+
+---
+
+## 16. ADR-015: Visibility and Point Bands
+
+**Decision:** New members default to `public_visibility=true`. `:deer: public` and `:deer: private` switch visibility without changing points.
+
+- Public members with points >0 appear on the scoreboard and receive exact point responses.
+- Private members continue earning points but are excluded from the scoreboard.
+- Private point responses use 100-point bands: 563 → 500–600; 0 → 0–100.
+
+**Rationale:** Preserve engagement while reducing exact public donation/score exposure.
+
+**Consequence:** Chat responses are public; the banding rule limits precision but does not make the response private.
+
+---
+
+## 17. ADR-016: Public Data Minimization
+
+**Decision:** Do not store YouTube display names in the member record. The public scoreboard returns only normalized current handle, rank, and total points for active public members with points >0.
+
+**Rationale:** Minimize personal-data collection and avoid automatically publishing real-looking display names.
+
+**Consequences:** The owner must provide a clear registration/public-display notice and a practical hide/remove path. Thai PDPA obligations should be reviewed by the channel owner with appropriate legal advice.
 
 ---
 
@@ -558,13 +228,16 @@ parent_project: "Deerngo Bot — VRM"
 
 | Document | Relationship |
 |----------|-------------|
-| [[011_business_objective]] | Business objectives driving these decisions |
-| [[012_user_stories]] | User stories that constrain architecture |
-| [[013_acceptance_criteria]] | ACs that verify architectural properties |
-| [[025_software_architecture_document]] | Architecture that these ADRs define |
-| [[029_architecture_overview]] | High-level overview of the architecture |
+| [[022_API_specification]] | Current API contracts |
+| [[023_database_schema_DDL]] | Current physical data model |
+| [[024_ERD]] | Current logical data model |
+| [[025_software_architecture_document]] | Current software architecture |
+| [[011_business_objective]] | Current business objectives |
+| [[012_user_stories]] | Current user stories |
+| [[013_acceptance_criteria]] | Current acceptance criteria |
+| [[072_MM06_dev-to-po-qa-youtube-subscriber-limit_20260801]] | Scope-change decision |
 
 ---
 
 > **Template Standard:** Based on SWEBOK v4, SEBoK v2, ISO/IEC/IEEE 42010
-> **Usage:** ADRs capture *why* — the most valuable architectural documentation. Code shows *what*, docs show *how*, ADRs show *why*. Future team members will thank you.
+> **Usage:** ADRs capture why decisions were made and identify superseded assumptions.

@@ -1,15 +1,15 @@
 ---
 document_type: Database Schema (DDL)
-version: "0.1"
+version: "0.2"
 status: Draft
-author: "SA / Designer Persona"
+author: "PO / SA / Dev"
 created: "2026-07-29"
-last_updated: "2026-07-29"
+last_updated: "2026-08-02"
 project_name: "Deerngo Bot"
 project_id: "DERNBOT-001"
-tech_lead: "SA / Designer Persona"
+tech_lead: "Dev"
 classification: "Internal"
-tags: [database-schema, ddl, postgresql, swebok, vrm, pg-trgm]
+tags: [database-schema, ddl, postgresql, members, donations, points, privacy]
 standard_ref:
   - SWEBOK v4 — Design
 parent_project: "Deerngo Bot — VRM"
@@ -18,32 +18,16 @@ parent_project: "Deerngo Bot — VRM"
 # Database Schema (DDL)
 
 > **Project:** Deerngo Bot — Viewer Relationship Management (VRM)
-> **Version:** 0.1 | **Status:** Draft
-> **Last Updated:** 2026-07-29
-
----
-
-## Document Control
-
-| Field | Value |
-|-------|-------|
-| Document Owner | SA / Designer Persona |
-| Database | PostgreSQL 18 (existing homelab) |
-| Database Name | `deerngo` |
-
-### Revision History
-
-| Version | Date | Author | Change Description |
-|---------|------|--------|--------------------|
-| 0.1 | 2026-07-29 | SA | Initial schema — subscribers, donations, viewer_points, oauth_tokens |
+> **Version:** 0.2 | **Status:** Draft
+> **Last Updated:** 2026-08-02
+>
+> **Scope change:** The subscriber-observation and YouTube OAuth tables are removed from the active Phase 1 MVP. Explicit `members` are the source of membership and points eligibility.
 
 ---
 
 ## 1. Purpose
 
-> This document provides the physical database schema for Deerngo Bot — DDL statements, indexes, constraints, triggers, and seed data. It implements the data model defined in [[024_ERD]].
-
----
+This document defines the Phase 1 physical data model: members, donations, point totals, constraints, indexes, and idempotent point application.
 
 ## 2. Database Overview
 
@@ -51,180 +35,126 @@ parent_project: "Deerngo Bot — VRM"
 |-------|--------|
 | RDBMS | PostgreSQL 18 |
 | Database Name | `deerngo` |
-| Character Set | UTF-8 |
-| Collation | `en_US.UTF-8` |
 | Schema | `public` |
 | Naming Convention | `snake_case`, lowercase |
-| Extensions Required | `pg_trgm` (fuzzy matching), `uuid-ossp` (UUID generation) |
+| Required Extensions | `uuid-ossp` only for the MVP schema |
 | Connection | Shared homelab PostgreSQL instance |
+
+> `pg_trgm` is no longer required for the Phase 1 member matching path because matching is normalized exact matching.
 
 ---
 
 ## 3. Extensions
 
 ```sql
--- Required extensions
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";    -- UUID generation
-CREATE EXTENSION IF NOT EXISTS "pg_trgm";      -- Fuzzy string matching (similarity(), % operator)
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 ```
 
 ---
 
 ## 4. DDL Scripts
 
-### 4.1 Subscribers Table
+### 4.1 Members Table
 
-> Stores YouTube subscriber data captured via hybrid approach (YouTube API polling + streamer.bot real-time).
+> Stores viewers who explicitly register through streamer.bot. The YouTube display name is intentionally not stored.
 
 ```sql
-CREATE TABLE subscribers (
-    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    youtube_handle  VARCHAR(100) NOT NULL,
-    display_name    VARCHAR(255) NOT NULL,
-    subscribed_at   TIMESTAMP WITH TIME ZONE NOT NULL,
-    source          VARCHAR(20) NOT NULL DEFAULT 'youtube_api',
-    created_at      TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at      TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+CREATE TABLE members (
+    member_id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    youtube_user_id     VARCHAR(255) NOT NULL,
+    youtube_handle     VARCHAR(100) NOT NULL,
+    status              VARCHAR(20) NOT NULL DEFAULT 'active',
+    public_visibility   BOOLEAN NOT NULL DEFAULT TRUE,
+    registered_at       TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    total_points       DECIMAL(12,2) NOT NULL DEFAULT 0,
+    donation_count     INTEGER NOT NULL DEFAULT 0,
+    last_donation      TIMESTAMP WITH TIME ZONE,
+    created_at         TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at         TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
 
-    -- Upsert key — unique per YouTube handle (normalized: lowercase, no @)
-    CONSTRAINT uk_subscribers_handle UNIQUE (youtube_handle),
-
-    -- Source must be one of the two capture methods
-    CONSTRAINT chk_subscribers_source CHECK (source IN ('youtube_api', 'streamer_bot')),
-
-    -- Handle must not be empty
-    CONSTRAINT chk_subscribers_handle CHECK (LENGTH(youtube_handle) > 0)
+    CONSTRAINT chk_members_status CHECK (status IN ('active', 'inactive')),
+    CONSTRAINT chk_members_handle CHECK (LENGTH(youtube_handle) > 0),
+    CONSTRAINT chk_members_points CHECK (total_points >= 0),
+    CONSTRAINT chk_members_donation_count CHECK (donation_count >= 0)
 );
 
--- Indexes
-CREATE INDEX idx_subscribers_handle ON subscribers(youtube_handle);
-CREATE INDEX idx_subscribers_subscribed ON subscribers(subscribed_at DESC);
-CREATE INDEX idx_subscribers_source ON subscribers(source);
+-- A user can have at most one active member record.
+CREATE UNIQUE INDEX uk_members_active_user
+    ON members(youtube_user_id)
+    WHERE status = 'active';
 
--- Trigram index for fuzzy matching (used by name matching engine)
-CREATE INDEX idx_subscribers_handle_trgm ON subscribers USING gin (youtube_handle gin_trgm_ops);
+-- A normalized handle can belong to at most one active member.
+CREATE UNIQUE INDEX uk_members_active_handle
+    ON members(youtube_handle)
+    WHERE status = 'active';
+
+CREATE INDEX idx_members_user_id ON members(youtube_user_id);
+CREATE INDEX idx_members_handle ON members(youtube_handle);
+CREATE INDEX idx_members_status ON members(status);
+CREATE INDEX idx_members_public_points
+    ON members(total_points DESC)
+    WHERE status = 'active' AND public_visibility = TRUE AND total_points > 0;
 ```
 
 ### 4.2 Donations Table
 
-> Stores donation records from EasyDonate (via webhook or REST API polling).
+> Stores EasyDonate events privately for reconciliation, exact matching, and idempotency. Raw donor names and messages must never be returned by public APIs.
 
 ```sql
 CREATE TABLE donations (
-    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    easydonate_id   VARCHAR(100) NOT NULL,
-    donor_name      VARCHAR(255) NOT NULL,
-    amount_thb      DECIMAL(12,2) NOT NULL,
-    currency        VARCHAR(3) NOT NULL DEFAULT 'THB',
-    donation_time   TIMESTAMP WITH TIME ZONE NOT NULL,
-    message         TEXT,
-    matched_handle  VARCHAR(100),          -- YouTube handle matched (nullable)
-    match_status    VARCHAR(20) NOT NULL DEFAULT 'pending',
-    match_score     DECIMAL(5,4),          -- similarity score (0.0000 → 1.0000)
-    source          VARCHAR(20) NOT NULL DEFAULT 'webhook',
-    created_at      TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at      TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    donation_id        UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    reference_no       VARCHAR(100) NOT NULL,
+    donor_name         VARCHAR(255) NOT NULL,
+    amount_thb         DECIMAL(12,2) NOT NULL,
+    currency           VARCHAR(3) NOT NULL DEFAULT 'THB',
+    donation_time      TIMESTAMP WITH TIME ZONE NOT NULL,
+    message            TEXT,
+    source             VARCHAR(20) NOT NULL,
+    match_status       VARCHAR(30) NOT NULL DEFAULT 'pending',
+    matched_member_id  UUID,
+    points_applied_at  TIMESTAMP WITH TIME ZONE,
+    created_at         TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at         TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
 
-    -- Idempotency key — prevent duplicate donations
-    CONSTRAINT uk_donations_easydonate UNIQUE (easydonate_id),
-
-    -- Foreign key to subscribers (nullable — unmatched donations have no subscriber)
-    CONSTRAINT fk_donations_subscriber FOREIGN KEY (matched_handle)
-        REFERENCES subscribers(youtube_handle) ON DELETE SET NULL,
-
-    -- Match status must be one of the defined states
-    CONSTRAINT chk_donations_match_status CHECK (match_status IN (
-        'pending',       -- not yet processed by matching engine
-        'matched',       -- successfully matched to a subscriber
-        'unmatched',     -- no match found (anonymous, no close match)
-        'manual_review'  -- multiple possible matches, needs human review
-    )),
-
-    -- Source must be webhook or api_poll
+    CONSTRAINT uk_donations_reference UNIQUE (reference_no),
+    CONSTRAINT fk_donations_member FOREIGN KEY (matched_member_id)
+        REFERENCES members(member_id) ON DELETE SET NULL,
     CONSTRAINT chk_donations_source CHECK (source IN ('webhook', 'api_poll')),
-
-    -- Amount must be positive
+    CONSTRAINT chk_donations_match_status CHECK (match_status IN (
+        'pending', 'matched', 'not_eligible', 'unmatched', 'duplicate', 'manual_review'
+    )),
     CONSTRAINT chk_donations_amount CHECK (amount_thb > 0),
-
-    -- Donor name must not be empty
-    CONSTRAINT chk_donations_donor CHECK (LENGTH(donor_name) > 0)
+    CONSTRAINT chk_donations_donor CHECK (LENGTH(TRIM(donor_name)) > 0)
 );
 
--- Indexes
-CREATE INDEX idx_donations_easydonate ON donations(easydonate_id);
-CREATE INDEX idx_donations_donor ON donations(donor_name);
+CREATE INDEX idx_donations_reference ON donations(reference_no);
 CREATE INDEX idx_donations_time ON donations(donation_time DESC);
 CREATE INDEX idx_donations_match_status ON donations(match_status);
-CREATE INDEX idx_donations_matched_handle ON donations(matched_handle);
-CREATE INDEX idx_donations_source ON donations(source);
-
--- Trigram index on donor_name for fuzzy matching against subscribers
-CREATE INDEX idx_donations_donor_trgm ON donations USING gin (donor_name gin_trgm_ops);
+CREATE INDEX idx_donations_member ON donations(matched_member_id);
+CREATE INDEX idx_donations_donor_name ON donations(donor_name);
 ```
 
-### 4.3 Viewer Points Table
+### 4.3 Optional Audit Note Table
 
-> Materialized summary of points per viewer. Updated when donations are matched. Denormalized for fast query by the `:deer: point` command.
+> Lightweight manual-correction record. This is not an admin console; it preserves who/why for direct database corrections.
 
 ```sql
-CREATE TABLE viewer_points (
-    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    youtube_handle  VARCHAR(100) NOT NULL,
-    display_name    VARCHAR(255) NOT NULL,
-    total_points    DECIMAL(12,2) NOT NULL DEFAULT 0,
-    donation_count  INTEGER NOT NULL DEFAULT 0,
-    last_donation   TIMESTAMP WITH TIME ZONE,
-    created_at      TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at      TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-
-    -- One record per YouTube handle
-    CONSTRAINT uk_viewer_points_handle UNIQUE (youtube_handle),
-
-    -- Foreign key to subscribers
-    CONSTRAINT fk_viewer_points_subscriber FOREIGN KEY (youtube_handle)
-        REFERENCES subscribers(youtube_handle) ON DELETE CASCADE,
-
-    -- Points cannot be negative
-    CONSTRAINT chk_viewer_points_total CHECK (total_points >= 0),
-
-    -- Donation count cannot be negative
-    CONSTRAINT chk_viewer_points_count CHECK (donation_count >= 0)
+CREATE TABLE point_adjustment_notes (
+    adjustment_id      UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    member_id          UUID NOT NULL REFERENCES members(member_id),
+    points_before      DECIMAL(12,2) NOT NULL,
+    points_after       DECIMAL(12,2) NOT NULL,
+    reason             TEXT NOT NULL,
+    changed_by         VARCHAR(255) NOT NULL,
+    created_at         TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
-
--- Indexes
-CREATE INDEX idx_viewer_points_handle ON viewer_points(youtube_handle);
-CREATE INDEX idx_viewer_points_total ON viewer_points(total_points DESC);
-CREATE INDEX idx_viewer_points_name ON viewer_points(display_name);
 ```
 
-### 4.4 OAuth Tokens Table
-
-> Stores OAuth 2.0 refresh tokens for YouTube Data API access. Only the refresh token is persisted — access tokens are short-lived and regenerated at runtime. Designed to support multiple YouTube channels in the future.
-
-```sql
-CREATE TABLE oauth_tokens (
-    id                  UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    provider            VARCHAR(50) NOT NULL,
-    youtube_channel_id  VARCHAR(100) NOT NULL,
-    refresh_token       TEXT NOT NULL,
-    created_at          TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at          TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-
-    -- One token per provider + channel combination
-    CONSTRAINT uk_oauth_provider_channel UNIQUE (provider, youtube_channel_id),
-
-    -- Provider must be defined
-    CONSTRAINT chk_oauth_provider CHECK (provider IN ('youtube'))
-);
-
--- Index
-CREATE INDEX idx_oauth_provider ON oauth_tokens(provider);
-CREATE INDEX idx_oauth_channel ON oauth_tokens(youtube_channel_id);
-```
+The owner/back-office worker may use this table when manually transferring points after a handle change. It does not expose correction details publicly.
 
 ---
 
-## 5. Triggers
+## 5. Triggers and Point Application
 
 ### 5.1 Updated At Trigger
 
@@ -235,105 +165,115 @@ BEGIN
     NEW.updated_at = NOW();
     RETURN NEW;
 END;
-$$ language 'plpgsql';
+$$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trg_subscribers_updated
-    BEFORE UPDATE ON subscribers
+CREATE TRIGGER trg_members_updated
+    BEFORE UPDATE ON members
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER trg_donations_updated
     BEFORE UPDATE ON donations
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER trg_viewer_points_updated
-    BEFORE UPDATE ON viewer_points
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER trg_oauth_tokens_updated
-    BEFORE UPDATE ON oauth_tokens
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 ```
 
-### 5.2 Sync Viewer Points Trigger
+### 5.2 Point Application Rule
 
-> Automatically updates `viewer_points` when a donation's `match_status` changes to `matched`. Keeps the materialized summary in sync with the donations table.
+Points must be applied by a transaction or equivalent guarded service operation, not by a naive donation-status trigger.
+
+Pseudocode:
 
 ```sql
-CREATE OR REPLACE FUNCTION sync_viewer_points()
-RETURNS TRIGGER AS $$
-BEGIN
-    -- Only process when match_status changes to 'matched'
-    IF NEW.match_status = 'matched' AND NEW.matched_handle IS NOT NULL THEN
-        INSERT INTO viewer_points (youtube_handle, display_name, total_points, donation_count, last_donation)
-        VALUES (
-            NEW.matched_handle,
-            COALESCE(
-                (SELECT display_name FROM subscribers WHERE youtube_handle = NEW.matched_handle),
-                NEW.matched_handle
-            ),
-            NEW.amount_thb,
-            1,
-            NEW.donation_time
-        )
-        ON CONFLICT (youtube_handle) DO UPDATE SET
-            total_points = viewer_points.total_points + NEW.amount_thb,
-            donation_count = viewer_points.donation_count + 1,
-            last_donation = GREATEST(viewer_points.last_donation, NEW.donation_time),
-            display_name = COALESCE(
-                (SELECT display_name FROM subscribers WHERE youtube_handle = NEW.matched_handle),
-                viewer_points.display_name
-            );
-    END IF;
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
+BEGIN;
 
-CREATE TRIGGER trg_donations_sync_points
-    AFTER UPDATE ON donations
-    FOR EACH ROW
-    WHEN (OLD.match_status IS DISTINCT FROM NEW.match_status)
-    EXECUTE FUNCTION sync_viewer_points();
+-- Lock the donation and ensure it has not already applied points.
+SELECT *
+FROM donations
+WHERE donation_id = :donation_id
+FOR UPDATE;
+
+-- Find only an active member with exact normalized handle match.
+SELECT *
+FROM members
+WHERE status = 'active'
+  AND youtube_handle = :normalized_donor_name
+  AND registered_at <= :donation_time
+FOR UPDATE;
+
+-- If exactly one member exists and points_applied_at is null:
+UPDATE members
+SET total_points = total_points + :amount_thb,
+    donation_count = donation_count + 1,
+    last_donation = GREATEST(COALESCE(last_donation, :donation_time), :donation_time)
+WHERE member_id = :member_id;
+
+UPDATE donations
+SET matched_member_id = :member_id,
+    match_status = 'matched',
+    points_applied_at = NOW()
+WHERE donation_id = :donation_id
+  AND points_applied_at IS NULL;
+
+COMMIT;
 ```
 
----
+Rules:
 
-## 6. Database Migrations
-
-| Version | Date | Description | Script |
-|---------|------|-------------|--------|
-| v0.1 | 2026-07-29 | Initial schema — extensions, tables, indexes, triggers | `001_initial_schema.sql` |
-
-> **Migration Tool:** `golang-migrate/migrate` — file-based migrations, compatible with sqlx workflow.
+- Pre-registration donations become `not_eligible`.
+- Donations matching inactive members become `not_eligible` or `unmatched`.
+- No match remains `unmatched` and uncredited.
+- A duplicate `reference_no` never creates points twice.
+- An active handle conflict is prevented at registration.
 
 ---
 
-## 7. Seed Data (Development)
+## 6. Public Scoreboard Query
 
 ```sql
--- Development-only: insert test subscribers
-INSERT INTO subscribers (youtube_handle, display_name, subscribed_at, source) VALUES
-    ('@testviewer1', 'TestViewer1', NOW() - INTERVAL '7 days', 'youtube_api'),
-    ('@testviewer2', 'TestViewer2', NOW() - INTERVAL '3 days', 'streamer_bot'),
-    ('@deer_fan', 'Deer Fan', NOW() - INTERVAL '1 day', 'youtube_api');
-
--- Development-only: insert test donations
-INSERT INTO donations (easydonate_id, donor_name, amount_thb, donation_time, match_status, matched_handle, source) VALUES
-    ('ed-test-001', 'testviewer1', 100.00, NOW() - INTERVAL '5 days', 'matched', '@testviewer1', 'webhook'),
-    ('ed-test-002', 'testviewer2', 250.50, NOW() - INTERVAL '2 days', 'matched', '@testviewer2', 'webhook'),
-    ('ed-test-003', 'anonymous', 50.00, NOW() - INTERVAL '1 day', 'unmatched', NULL, 'webhook'),
-    ('ed-test-004', 'deer_fan', 500.00, NOW() - INTERVAL '6 hours', 'matched', '@deer_fan', 'api_poll');
+SELECT
+    ROW_NUMBER() OVER (ORDER BY total_points DESC, youtube_handle ASC) AS rank,
+    youtube_handle,
+    total_points
+FROM members
+WHERE status = 'active'
+  AND public_visibility = TRUE
+  AND total_points > 0
+ORDER BY total_points DESC, youtube_handle ASC
+LIMIT :limit OFFSET :offset;
 ```
+
+Never select `youtube_user_id`, `donor_name`, `message`, or inactive/private members for the public response.
 
 ---
 
-## 8. Backup & Recovery
+## 7. Migration Plan
 
-| Strategy | Frequency | Retention | Method |
-|----------|-----------|-----------|--------|
-| Full backup | Daily (homelab schedule) | 30 days | `pg_dump` (shared with other databases) |
-| Point-in-time | On demand | 7 days | WAL archiving (if configured on homelab) |
+| Version | Description | Notes |
+|---------|-------------|-------|
+| v0.1 | Original subscriber/donation/viewer_points/oauth schema | Superseded; do not use for new MVP code |
+| v0.2 | `members`, revised `donations`, optional `point_adjustment_notes` | New Phase 1 baseline |
 
-> **Note:** Backup strategy follows the homelab's existing PostgreSQL backup schedule. No separate backup configuration needed for Phase 1.
+Recommended migration approach:
+
+1. Create new tables in an additive migration.
+2. Do not migrate old YouTube subscriber rows into members automatically.
+3. Do not migrate old points/donation matches into the new member totals automatically.
+4. Start all new members at 0 points.
+5. Keep the old schema only as a temporary migration artifact, then remove it after Dev verifies no active code depends on it.
+
+---
+
+## 8. Development Seed Data
+
+```sql
+INSERT INTO members (
+    youtube_user_id, youtube_handle, status, public_visibility, registered_at
+) VALUES
+    ('UC-test-001', 'testviewer1', 'active', TRUE, NOW() - INTERVAL '2 days'),
+    ('UC-test-002', 'privateviewer', 'active', FALSE, NOW() - INTERVAL '1 day'),
+    ('UC-test-003', 'inactiveviewer', 'inactive', TRUE, NOW() - INTERVAL '3 days');
+```
+
+Use synthetic donor data in tests. Do not use real client donations or personal data in development fixtures.
 
 ---
 
@@ -341,12 +281,13 @@ INSERT INTO donations (easydonate_id, donor_name, amount_thb, donation_time, mat
 
 | Document | Relationship |
 |----------|-------------|
-| [[024_ERD]] | Logical model this schema implements |
-| [[021_architecture_decision_records]] | ADR-002 (PostgreSQL), ADR-006 (pg_trgm), ADR-008 (sqlx) |
-| [[022_API_specification]] | API endpoints that query these tables |
-| [[013_acceptance_criteria]] | ACs that verify data integrity |
+| [[022_API_specification]] | API endpoints using this model |
+| [[024_ERD]] | Logical data model |
+| [[012_user_stories]] | Member and points requirements |
+| [[013_acceptance_criteria]] | Data-integrity criteria |
+| [[072_MM06_dev-to-po-qa-youtube-subscriber-limit_20260801]] | Approved scope change |
 
 ---
 
 > **Template Standard:** Based on SWEBOK v4
-> **Usage:** This is the *physical* database schema. Use `golang-migrate/migrate` to manage schema changes. Never modify production schema manually.
+> **Usage:** Use migrations to manage this schema. Never modify production tables ad hoc without a backup, transaction, and correction note.

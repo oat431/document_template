@@ -1,16 +1,33 @@
 # Deerngo Bot — Viewer Relationship Management (VRM)
 
 > **Project:** Deerngo Bot
-> **Version:** 0.1 | **Status:** Draft
-> **Last Updated:** 2026-07-29
+> **Version:** 0.2 | **Status:** Draft
+> **Last Updated:** 2026-08-02
+>
+> **Phase 1 change:** YouTube subscriber polling was removed after live verification showed that the YouTube API exposes only a limited subscriber subset. Viewers now explicitly join the VRM program with `:deer: register`.
 
 ---
 
 ## What is Deerngo Bot?
 
-A **Viewer Relationship Management (VRM)** system for the [@Deer_NGO](https://www.youtube.com/@Deer_NGO) YouTube channel. Think of it as a lightweight CRM for live stream viewers — tracking contributions (subscriptions, donations) and rewarding engagement through a points system visible in live chat and on a public scoreboard.
+A **Viewer Relationship Management (VRM)** system for the [@Deer_NGO](https://www.youtube.com/@Deer_NGO) YouTube channel. It is a lightweight community points program for viewers who explicitly register during live chat.
 
-**Core idea:** 1 THB donated = 1 point. Points are matched to YouTube handles via fuzzy name matching. Viewers can check their points in chat with `:deer: point`.
+**Core idea:**
+
+```text
+Viewer types :deer: register
+  → streamer.bot sends the actual chat identity
+  → Go backend creates an active member with 0 points
+  → future qualifying EasyDonate donations earn 1 point per THB
+```
+
+A viewer's donation name must match their normalized registered YouTube handle:
+
+```text
+trim whitespace → remove leading @ → lowercase
+```
+
+No fuzzy matching is used in the revised MVP.
 
 ---
 
@@ -18,11 +35,12 @@ A **Viewer Relationship Management (VRM)** system for the [@Deer_NGO](https://ww
 
 | Component | Technology | Notes |
 |-----------|-----------|-------|
-| **Automation Engine** | streamer.bot | Windows desktop app, handles YouTube events + chat commands |
-| **Backend** | Go | Business logic, API, database interaction |
+| **Automation Engine** | streamer.bot | Windows desktop app; receives chat commands and provides the actual chat identity |
+| **Backend** | Go | Member API, donation ingestion, exact matching, points, scoreboard API |
 | **Database** | PostgreSQL 18 | Existing homelab infrastructure |
-| **Frontend** | React/Next.js | Public scoreboard (read-only, no auth) |
-| **Donation Source** | EasyDonate API | [easydonate.app/deerngo0](https://easydonate.app/deerngo0) — webhook + REST API |
+| **Frontend** | React/Next.js | Public read-only scoreboard |
+| **Donation Source** | EasyDonate | Webhook primary + REST API polling fallback |
+| **Public Access** | Cloudflare Tunnel | Scoreboard and configured webhook route |
 
 ---
 
@@ -30,103 +48,121 @@ A **Viewer Relationship Management (VRM)** system for the [@Deer_NGO](https://ww
 
 ```mermaid
 flowchart TB
-    subgraph YouTube["YouTube Platform"]
-        YT_Chat["Live Chat"]
-        YT_Sub["Subscription Events"]
-        YT_API["YouTube Data API v3<br>/youtube/v3/subscriptions"]
+    subgraph LivePC["Streamer's Windows PC"]
+        YT["YouTube Live Chat"]
+        SB["streamer.bot"]
     end
 
-    subgraph StreamerBot["Streamer.bot (Windows Local)"]
-        SB_Trig["Triggers<br>Chat Message / New Sub"]
-        SB_Actions["Actions<br>Send Chat / HTTP Request"]
+    subgraph Backend["Go Backend — Homelab Docker :8008"]
+        MemberAPI["Member API<br>register / public / private"]
+        PointAPI["Points API"]
+        ScoreAPI["Scoreboard API"]
+        Ingest["EasyDonate Ingestion"]
+        Match["Normalized Exact Matching"]
     end
 
-    subgraph Backend["Go Backend (Windows Local)"]
-        API_Sub["/api/v1/subscribers<br>(streamer.bot push)"]
-        API_Point["/api/v1/points/{handle}"]
-        API_Score["/api/v1/scoreboard"]
-        SyncEngine["EasyDonate Sync<br>+ Name Matching"]
-        PollScheduler["YouTube API Polling<br>(every 15 min, 24/7)"]
+    subgraph DB["PostgreSQL 18 — deerngo"]
+        Members["members"]
+        Donations["donations"]
+        Notes["point_adjustment_notes"]
     end
 
-    subgraph DB["PostgreSQL 18 (Homelab)"]
-        T_Sub["subscribers"]
-        T_Don["donations"]
-        T_Pts["viewer_points"]
+    subgraph EasyDonate["EasyDonate"]
+        Webhook["Webhook"]
+        API["REST API fallback"]
     end
 
-    subgraph EasyDonate["EasyDonate Platform"]
-        ED_Webhook["Webhook<br>(donation events)"]
-        ED_API["REST API<br>(donation history)"]
+    subgraph Web["Next.js — Homelab Docker :3008"]
+        Board["Public Scoreboard"]
     end
 
-    subgraph Frontend["React/Next.js Scoreboard"]
-        Web_Score["Public Scoreboard Page"]
-    end
+    YT --> SB
+    SB -->|"HTTP over LAN"| MemberAPI
+    SB -->|"HTTP over LAN"| PointAPI
+    SB -->|"HTTP over LAN"| ScoreAPI
+    MemberAPI --> Members
+    PointAPI --> Members
+    ScoreAPI --> Members
+    Webhook -->|"public path"| Ingest
+    API -->|"API key polling"| Ingest
+    Ingest --> Donations
+    Donations --> Match
+    Match --> Members
+    Members --> Notes
+    Board -->|"GET"| ScoreAPI
 
-    %% Subscriber flow — HYBRID
-    YT_Sub --> SB_Trig
-    SB_Trig -->|"real-time during live"| API_Sub
-    YT_API -->|"poll every 15min (24/7)"| PollScheduler
-    API_Sub -->|"upsert"| T_Sub
-    PollScheduler -->|"upsert"| T_Sub
-
-    %% Chat command flow
-    YT_Chat --> SB_Trig
-    SB_Trig -->|":deer: donate"| SB_Actions
-    SB_Trig -->|":deer: point"| API_Point
-    API_Point --> T_Pts
-    API_Point -->|"response"| SB_Actions
-    SB_Actions -->|"chat message"| YT_Chat
-
-    %% Donation flow
-    ED_Webhook -->|"POST"| SyncEngine
-    ED_API -->|"poll (fallback)"| SyncEngine
-    SyncEngine --> T_Don
-    SyncEngine --> T_Pts
-
-    %% Scoreboard flow
-    Web_Score -->|"GET"| API_Score
-    API_Score --> T_Pts
-
-    style YouTube fill:#FF0000,color:#fff
-    style StreamerBot fill:#7B68EE,color:#fff
+    style LivePC fill:#7B68EE,color:#fff
     style Backend fill:#2196F3,color:#fff
     style DB fill:#4CAF50,color:#fff
     style EasyDonate fill:#FF9800,color:#fff
-    style Frontend fill:#00BCD4,color:#fff
+    style Web fill:#00BCD4,color:#fff
 ```
 
 ---
 
-## Phase 1 Scope (MVP)
-
-### Features
+## Phase 1 Scope (Revised MVP)
 
 | # | Feature | Description | Priority |
 |---|---------|-------------|----------|
-| 1 | **Register** | Auto-capture new YouTube subscribers to PostgreSQL via streamer.bot | 🔴 |
-| 2 | **Bot — Donate** | `:deer: donate` → posts EasyDonate link in live chat | 🔴 |
-| 3 | **Bot — Points** | `:deer: point` → shows viewer's points in live chat (1 THB = 1 pt) | 🔴 |
-| 4 | **Web Scoreboard** | Public React page showing viewer points leaderboard | 🟡 |
+| 1 | **Member Register** | `:deer: register` creates a member from the actual streamer.bot chat identity | 🔴 |
+| 2 | **Bot — Donate** | `:deer: donate` posts the EasyDonate link in live chat | 🔴 |
+| 3 | **Bot — Points** | `:deer: point` shows exact points for public members or a 100-point range for private members | 🔴 |
+| 4 | **Visibility** | `:deer: public` / `:deer: private` switch scoreboard visibility | 🔴 |
+| 5 | **Donation Points** | EasyDonate webhook + API fallback; normalized exact donor-name matching; 1 THB = 1 point | 🔴 |
+| 6 | **Web Scoreboard** | Shows only active, public members with points > 0; handle and points only | 🟡 |
 
-### By the Numbers
+### Explicitly Removed from Phase 1
 
-| Metric | Value |
-|--------|-------|
-| Business Objectives | 4 |
-| Epics | 4 (Register, Bot Commands, Points Engine, Scoreboard) |
-| User Stories | 11 |
-| Story Points | 41 |
-| Acceptance Criteria | 54 (32 🔴 Must Have, 22 🟡 Should Have) |
+- YouTube Data API subscriber polling
+- Automatic subscriber registration
+- YouTube OAuth client/refresh-token dependency
+- Historical subscriber backfill
+- `subscribers` table as a points source
+- `pg_trgm` fuzzy name matching
+- Automatic historical donation crediting
+- Admin console
 
-### Sprint Plan
+### Member Rules
 
-| Sprint | Stories | Focus |
-|--------|---------|-------|
-| Sprint 1 | US-001, US-002, US-003, US-010 | Subscriber registration (hybrid) + Donate command |
-| Sprint 2 | US-011, US-012, US-020, US-021 | Point command + EasyDonate sync + Name matching |
-| Sprint 3 | US-022, US-030, US-031 | Point query API + Scoreboard |
+| Rule | Behavior |
+|------|----------|
+| New registration | Active member, 0 points, public visibility enabled |
+| Same-handle registration | Friendly already-registered response; no DB change |
+| New handle for same user | Old member becomes inactive; old points stay; new active member starts at 0 |
+| Active handle conflict | Reject registration; owner resolves manually |
+| Pre-registration donation | Stored privately, never credited automatically |
+| Matching | Normalized exact donor-name → active member handle |
+| Private member | Keeps earning points; hidden from scoreboard; point command shows a 100-point range |
+| Scoreboard | Active + public + points > 0 only |
+| Display name | Not stored; public API exposes normalized handle only |
+
+---
+
+## Chat Commands
+
+| Command | Registered? | Result |
+|---------|:-----------:|--------|
+| `:deer: register` | No | Creates member from actual chat identity |
+| `:deer: donate` | No | Posts EasyDonate link |
+| `:deer: point` | Yes | Exact points if public; 100-point band if private |
+| `:deer: public` | Yes | Enables public scoreboard visibility |
+| `:deer: private` | Yes | Hides member from scoreboard while keeping points active |
+
+### Example Responses
+
+```text
+New member:
+🦌 Registered! You start with 0 points. When you earn points, your normalized YouTube handle and score may appear on the public scoreboard.
+
+Unregistered point query:
+🦌 You are not registered yet. Use :deer: register first.
+
+Private member with 563 points:
+🦌 Your points are between 500–600.
+
+Backend unavailable:
+🦌 Registration is temporarily unavailable. Please try again later.
+```
 
 ---
 
@@ -134,60 +170,97 @@ flowchart TB
 
 ### streamer.bot
 
-| Capability | Port | Use Case |
-|-----------|------|----------|
-| HTTP Server | 7474 | `POST /DoAction` — trigger actions from Go backend |
-| WebSocket Server | 8681 | Real-time bidirectional events |
-| YouTube Triggers | — | Chat Message, New Subscriber (31 total) — **backup for subscriber capture during live** |
-| User Global Variables | — | Per-user persistent state |
-| Custom Webhook | — | External services can trigger actions |
-
-### YouTube Data API v3
-
 | Capability | Use Case |
 |-----------|----------|
-| `GET /youtube/v3/subscriptions` | **Primary** subscriber source — polls every 15 min, 24/7 coverage |
-| OAuth 2.0 | Requires channel owner authorization |
-| Quota | 10,000 units/day (96 calls/day at 15-min intervals = well within limit) |
+| YouTube Chat Message trigger | Detect `:deer:` commands |
+| YouTube user variables | Supply actual `userId` and current username/handle |
+| HTTP Request action | Call Go backend over LAN |
+| Send Chat Message action | Reply in YouTube chat |
+| Action logs | Record trigger and result without secrets |
 
 ### EasyDonate
 
 | Capability | Use Case |
 |-----------|----------|
-| Webhook | Push donation events to Go backend (primary) |
-| REST API | Poll donation history as fallback (60 req/min limit) |
-| Auth | API key + OAuth 2.0 |
+| Webhook | Primary donation event ingestion |
+| REST API | Fallback reconciliation using a backend-only API key with donation-read scope |
+| Webhook security | Use provider-confirmed mechanism; current public docs do not confirm HMAC |
+| Idempotency | Use provider `referenceNo` |
 
 ---
 
-## Deployment
+## Data and Privacy Boundary
 
-| Component | Location | Notes |
-|-----------|----------|-------|
-| streamer.bot | Local Windows PC | Same machine as streamer |
-| Go Backend | Local Windows PC | Same machine as streamer.bot (localhost) |
-| PostgreSQL 18 | Homelab | Existing infrastructure |
-| React Frontend | Local Windows PC | Exposed via tunnel/port forwarding for public access |
+### Stored Privately
+
+- Stable streamer.bot/YouTube user ID
+- Normalized current handle
+- Member status and visibility
+- Registration time and point total
+- Raw EasyDonate donor name, amount, time, reference, and message for reconciliation
+
+### Publicly Exposed
+
+Only active, public members with points greater than zero:
+
+```text
+rank
+youtube_handle
+total_points
+```
+
+The public API does not expose display names, stable user IDs, raw donor names, donation messages, inactive members, private members, or zero-point members.
+
+> A YouTube handle can still be personal data under Thai PDPA. Registration notice, public visibility behavior, privacy/opt-out handling, and owner/operator responsibilities must be documented before public release.
 
 ---
 
-## Future Phases (Not in Scope)
+## Repository and Deployment
 
-| Phase | Features |
-|-------|----------|
-| Phase 2 | Leaderboard, recognition (bot shouts top donors), milestones/tiers |
-| Phase 3 | Point redemption, OBS overlay integration, advanced gamification |
+| Repository | Content | Port |
+|------------|---------|:----:|
+| [`oat431/deerngo-bot`](https://github.com/oat431/deerngo-bot) | Go backend, migrations, integration contracts | 8008 |
+| [`oat431/deerngo-web`](https://github.com/oat431/deerngo-web) | Next.js scoreboard | 3008 |
+
+| Component | Location |
+|-----------|----------|
+| streamer.bot | Streamer's Windows PC |
+| Go backend | Homelab Docker, `db-network` |
+| PostgreSQL | Existing homelab PostgreSQL 18, `deerngo` database |
+| Next.js | Homelab Docker, `db-network` |
+| Cloudflare Tunnel | Homelab systemd service |
+
+---
+
+## Sprint Plan (Revised)
+
+| Sprint | Stories | Focus |
+|--------|---------|-------|
+| Sprint 1 | US-001, US-002, US-010 | Member registration + donate command |
+| Sprint 2 | US-011, US-012, US-020, US-021, US-022 | Visibility/point commands + EasyDonate ingestion + exact matching + points |
+| Sprint 3 | US-030, US-031 | Public scoreboard and release hardening |
+
+### Superseded Work
+
+US-003 and its merged YouTube polling implementation are retained as historical technical work, but are no longer part of the active Phase 1 product scope. See `07_pm/072_MM06_dev-to-po-qa-youtube-subscriber-limit_20260801.md`.
 
 ---
 
 ## Spec Documents
 
-| Document | Path | Status |
-|----------|------|--------|
-| Business Objectives | [011_business_objective.md](../external_spec/deerngo_bot/01_requirement/011_business_objective.md) | v0.1 Draft |
-| User Stories | [012_user_stories.md](../external_spec/deerngo_bot/01_requirement/012_user_stories.md) | v0.1 Draft |
-| Acceptance Criteria | [013_acceptance_criteria.md](../external_spec/deerngo_bot/01_requirement/013_acceptance_criteria.md) | v0.1 Draft |
+| Document | Path | Version |
+|----------|------|:-------:|
+| Business Objectives | `01_requirement/011_business_objective.md` | 0.2 |
+| User Stories | `01_requirement/012_user_stories.md` | 0.2 |
+| Acceptance Criteria | `01_requirement/013_acceptance_criteria.md` | 0.2 |
+| API Specification | `02_design/022_API_specification.md` | 0.2 |
+| Database Schema | `02_design/023_database_schema_DDL.md` | 0.2 |
+| ERD | `02_design/024_ERD.md` | 0.2 |
+| Architecture Overview | `02_design/029_architecture_overview.md` | 0.2 |
+| Scope Decision | `07_pm/072_MM06_dev-to-po-qa-youtube-subscriber-limit_20260801.md` | Final |
 
 ---
 
 > **Original idea (Thai notes):** ไม่อยากทำยุ่งยากมาก — ผูกกะ streamer.bot, ให้ยูสพิมพ์คำสั่ง `:deer: donate` ขึ้นลิ้งโดเนท, `:deer: point` ขึ้นคะแนน, 1 บาท = 1 คะแนน, ชื่อ subscriber ต้องตรงกับชื่อ donate, แสดงผลในเว็บ
+> **Current product decision:** Use explicit registered members, not automatic subscriber collection.
+---

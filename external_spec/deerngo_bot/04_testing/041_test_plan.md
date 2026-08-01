@@ -1,14 +1,14 @@
 ---
 document_type: Test Plan
-version: "0.1"
+version: "0.2"
 status: Draft
-author: "QA Engineer"
+author: "QA Engineer / PO"
 created: "2026-07-30"
-last_updated: "2026-07-30"
+last_updated: "2026-08-02"
 project_name: "Deerngo Bot"
 project_id: "DERNBOT-001"
 classification: "Internal"
-tags: [test-plan, testing, swebok, iso-29119, vrm, deerngo-bot]
+tags: [test-plan, testing, swebok, iso-29119, vrm, deerngo-bot, members, privacy]
 standard_ref:
   - SWEBOK v4 — Testing
   - ISO/IEC/IEEE 29119 — Software Testing
@@ -17,8 +17,10 @@ standard_ref:
 # Test Plan
 
 > **Project:** Deerngo Bot — Viewer Relationship Management (VRM)
-> **Version:** 0.1 | **Status:** Draft
-> **Last Updated:** 2026-07-30
+> **Version:** 0.2 | **Status:** Draft
+> **Last Updated:** 2026-08-02
+>
+> **Scope change:** YouTube subscriber polling and automatic subscriber capture are superseded. The active plan covers explicit member registration, donation ingestion, exact matching, points, visibility, and scoreboard behavior.
 
 ---
 
@@ -27,15 +29,7 @@ standard_ref:
 | Field | Value |
 |-------|-------|
 | Document Owner | QA Engineer |
-| Approvals | PO, SA / Designer Persona, QA Engineer |
-
-### Approvals
-
-| Role | Name | Signature | Date |
-|------|------|-----------|------|
-| Product Owner | | | |
-| Solution Architect | | | |
-| QA Engineer | | | |
+| Approvals | PO, SA / Dev, QA |
 
 ---
 
@@ -43,30 +37,31 @@ standard_ref:
 
 ### 1.1 Purpose
 
-This plan defines the testing approach, scope, resources, schedule, and deliverables for the Deerngo Bot Phase 1 MVP. It governs verification of 54 acceptance criteria across 11 user stories and 4 epics.
+This plan defines the test approach for 62 active acceptance criteria across 10 active user stories and 4 epics.
 
 ### 1.2 Scope
 
 | In Scope | Out of Scope |
 |---------|-------------|
-| Functional testing — subscriber capture, bot commands, points engine, scoreboard | Performance / load testing — separate plan for Phase 2 |
-| API contract testing — 4 endpoints + 1 webhook | Security penetration testing — OWASP Top 10 deep-dive |
-| Integration testing — EasyDonate API, YouTube API, PostgreSQL | Disaster recovery testing |
-| Database integrity testing — triggers, constraints, upserts | streamer.bot internal logic (black-box, Windows-only) |
-| Fuzzy matching accuracy — pg_trgm similarity | Phase 2 features (leaderboard recognition, milestones) |
-| Regression testing — critical path automation | |
+| Member registration and re-registration | YouTube subscriber polling and OAuth |
+| streamer.bot command integration | Admin console |
+| EasyDonate webhook and API fallback | Fuzzy `pg_trgm` matching |
+| Normalized exact matching and cutoff | Automatic historical point backfill |
+| Point transaction/idempotency | Phase 2 gamification |
+| Visibility and privacy-aware point response | Deep performance/load testing (Phase 2) |
+| Public scoreboard API/page filtering | Disaster recovery testing (separate plan) |
 
 ### 1.3 Project Context
 
 | Aspect | Detail |
 |--------|--------|
-| System | Viewer Relationship Management (VRM) for @Deer_NGO YouTube channel |
-| Backend | Go 1.24+ / Fiber v3 / sqlx — port :8008 |
-| Frontend | Next.js 15+ / Tailwind 4+ / DaisyUI 5+ — port :3008 |
-| Database | PostgreSQL 18 (shared homelab, `deerngo` DB) |
-| Automation | streamer.bot (Windows, local PC) |
-| Donation Source | EasyDonate API (easydonate.app/deerngo0) |
-| Public Access | Cloudflare Tunnel → scoreboard only |
+| System | Viewer Relationship Management for @Deer_NGO |
+| Backend | Go / Fiber / sqlx — port :8008 |
+| Frontend | Next.js / Tailwind / DaisyUI — port :3008 |
+| Database | PostgreSQL 18, isolated `deerngo_test` |
+| Automation | streamer.bot on Windows |
+| Donation Source | EasyDonate webhook + API fallback |
+| Public Access | Cloudflare Tunnel → scoreboard and configured webhook route |
 
 ---
 
@@ -76,30 +71,32 @@ This plan defines the testing approach, scope, resources, schedule, and delivera
 
 | Level | Type | Automation | Coverage Target | Tools |
 |-------|------|-----------|----------------|-------|
-| Unit | White-box | 100% | ≥ 80% service layer | Go `testing` + `testify` |
-| Integration | Gray-box | 80% | All 4 endpoints + webhook + scheduler logic | Go `httptest` + test PostgreSQL + Docker Compose |
-| System | Black-box | 60% | All functional requirements | Docker Compose + curl / Postman |
-| E2E | Black-box | 40% | Happy path per epic (webhook → matching → scoreboard) | Docker Compose + test scripts |
-| Manual | Exploratory | 0% | streamer.bot integration, Cloudflare Tunnel, live chat | Live environment per-stream |
+| Unit | White-box | 100% | ≥80% service layer | Go testing + testify |
+| Integration | Gray-box | 80% | Member/donation/points endpoints and transactions | httptest + test PostgreSQL |
+| System | Black-box | 60% | Active functional requirements | Docker Compose + curl/Postman |
+| E2E | Black-box | 40% | Register → donation → points → scoreboard | Docker Compose + scripts |
+| Manual | Exploratory | 0% | streamer.bot, live chat, Cloudflare, UI | Live/test environment |
 
 ### 2.2 Test Techniques
 
 | Technique | Application |
 |-----------|------------|
-| **Equivalence Partitioning** | Input validation (youtube_handle, donor_name, amount_thb) |
-| **Boundary Value Analysis** | Handle length (1, 100 chars), amount (>0), pagination (page 1, limit 50/100) |
-| **Decision Table** | Matching engine outcomes (exact, fuzzy, anonymous, multiple, no-match) |
-| **State Transition** | Donation match_status: pending → matched / unmatched / manual_review |
-| **Error Guessing** | Duplicate upserts, expired OAuth, rate limits, empty payloads, special chars in handles |
+| Equivalence Partitioning | User IDs, handles, donor names, amounts, webhook payloads |
+| Boundary Value Analysis | Handle 1/100 chars, amount >0, 100-point bands, pagination 1/100 |
+| Decision Table | New/same/new-handle/conflicting registration; public/private/inactive point responses |
+| State Transition | Member active → inactive; donation pending → matched/not_eligible/unmatched |
+| Concurrency Testing | Duplicate webhook and simultaneous point application |
+| Error Guessing | Empty fields, invalid path token, duplicate reference, 429, backend unavailable |
+| Privacy Inspection | Public response field allowlist and log redaction |
 
 ### 2.3 Test Approach by Epic
 
 | Epic | Strategy | Key Risks |
 |------|----------|-----------|
-| **E-01 Subscriber Capture** | Unit tests for upsert logic + timestamp preservation; integration tests for API endpoint + scheduler | Data integrity on dual-source upsert; YouTube API quota exhaustion |
-| **E-02 Bot Commands** | Manual tests via streamer.bot (command detection, response format); integration tests for Go API calls | streamer.bot is external black-box; response latency <2s |
-| **E-03 Points Engine** | Unit tests for name matching (pg_trgm); integration tests for donation sync + point calculation trigger | Fuzzy matching false positives; idempotent webhook processing |
-| **E-04 Scoreboard** | System tests for API endpoint + frontend rendering; manual responsive design check | 0-point exclusion; empty state UX |
+| E-01 Member Registration | Unit/integration tests for normalization, idempotency, active uniqueness, re-registration transaction | Duplicate active user/handle; old points accidentally transferred |
+| E-02 Bot Commands | Manual streamer.bot tests plus API contract tests | Actual chat identity; public chat response wording; backend offline |
+| E-03 Points Engine | Integration tests for webhook/API ingestion, cutoff, exact match, transaction and idempotency | Wrong member attribution; duplicate points; provider contract mismatch |
+| E-04 Scoreboard | API field/filter tests plus frontend rendering/responsive checks | Private/inactive/zero-point leakage; ranking/pagination |
 
 ---
 
@@ -107,26 +104,28 @@ This plan defines the testing approach, scope, resources, schedule, and delivera
 
 | Environment | Purpose | URL | Data |
 |------------|---------|-----|------|
-| **Local Docker** | Developer + QA unit/integration testing | `localhost:8008` (API), `localhost:3008` (Web) | Seed data (3 subscribers, 4 donations) |
-| **Homelab LAN** | System + E2E testing | `192.168.1.121:8008` (API), `:3008` (Web) | Synthetic test data |
-| **Production (via Tunnel)** | Smoke test, manual verification | `https://deerngo-viewer-score.panomete.com` | Live data |
+| Local Docker | Developer/QA unit and integration | `localhost:8008`, `localhost:3008` | Synthetic members/donations |
+| Homelab LAN | E2E and streamer.bot integration | `192.168.1.121:8008`, `:3008` | Synthetic or approved test data |
+| Tunnel smoke | Public scoreboard/webhook route | Configured HTTPS hostname | Approved smoke data only |
 
 ### 3.1 Test Database
 
 | Item | Detail |
 |------|--------|
-| Database | `deerngo_test` (isolated from production `deerngo`) |
-| Extensions | `pg_trgm`, `uuid-ossp` |
-| Seed Data | 3 test subscribers + 4 test donations (3 matched, 1 unmatched) |
-| Reset | `TRUNCATE` + re-seed before each test cycle |
+| Database | `deerngo_test` |
+| Extensions | `uuid-ossp`; no `pg_trgm` required for active matching |
+| Seed Data | Active public, active private, inactive members + synthetic donations |
+| Reset | `TRUNCATE` + reseed before test cycles |
+| Privacy | Never use real client donor names/messages in fixtures |
 
 ### 3.2 Mock Strategy
 
 | External Dependency | Mock Approach |
-|-------------------|---------------|
-| YouTube Data API | Mock HTTP client (Go `httptest`) — returns controlled subscriber lists |
-| EasyDonate API | Mock HTTP client — returns controlled donation lists + error scenarios |
-| streamer.bot | Manual testing only — real Windows app, not mockable in CI |
+|--------------------|---------------|
+| EasyDonate API | Mock HTTP client: new donations, duplicate reference, empty, 429, provider error |
+| EasyDonate webhook | httptest: valid documented payload, invalid path, invalid fields, duplicate |
+| streamer.bot | Manual Windows integration; HTTP requests can be contract-tested separately |
+| YouTube API | Not in active MVP; no polling tests |
 
 ---
 
@@ -137,150 +136,117 @@ gantt
     title Deerngo Bot Phase 1 Test Schedule
     dateFormat YYYY-MM-DD
     section Sprint 1
-    Unit Tests (E-01: Subscriber)       :a1, 2026-08-01, 5d
-    Integration Tests (E-01: API+Sched) :a2, after a1, 3d
-    Unit Tests (E-02: Bot Commands)     :a3, after a1, 3d
-    Manual Tests (E-02: streamer.bot)   :a4, after a3, 2d
+    Unit Tests — Member Service       :a1, 2026-08-03, 4d
+    Integration — Members API/DB      :a2, after a1, 3d
+    Manual — Register/Donate Commands :a3, after a2, 2d
     section Sprint 2
-    Unit Tests (E-03: Matching Engine)  :a5, 2026-08-11, 5d
-    Integration Tests (E-03: Sync+API)  :a6, after a5, 3d
-    Manual Tests (E-02: Point Command)  :a7, after a5, 2d
+    Unit Tests — Matcher/Points       :a4, 2026-08-12, 4d
+    Integration — EasyDonate/Points   :a5, after a4, 4d
+    Manual — Visibility/Point Command :a6, after a5, 2d
     section Sprint 3
-    Unit Tests (E-03: Point Calc)       :a8, 2026-08-21, 3d
-    System Tests (E-04: Scoreboard)     :a9, after a8, 3d
-    E2E Tests (Full Flow)               :a10, after a9, 3d
-    Regression Suite                    :a11, after a10, 2d
+    System — Scoreboard API/UI        :a7, 2026-08-22, 3d
+    E2E — Full Member Flow            :a8, after a7, 3d
+    Regression — Active Criteria      :a9, after a8, 3d
 ```
 
 ---
 
-## 5. Test Resources
-
-| Role | Name | Responsibility |
-|------|------|---------------|
-| QA Engineer | QA | Test planning, test case authoring, defect tracking, regression |
-| Developer | Dev | Unit test implementation, bug fixes, TDD |
-| Product Owner | PO | UAT sign-off, acceptance criteria validation |
-
-> **Note:** Phase 1 is a small team (1 QA, 1 Dev, 1 PO). QA handles all test levels except unit tests (Dev owns those via TDD).
-
----
-
-## 6. Entry & Exit Criteria
+## 5. Entry & Exit Criteria
 
 | Phase | Entry Criteria | Exit Criteria |
 |-------|---------------|--------------|
-| **Unit** | Code complete, PR merged | ≥ 80% service layer coverage, all unit tests pass |
-| **Integration** | Unit tests pass, Docker Compose services deployed | All 4 endpoints + webhook verified, DB constraints validated |
-| **System** | Integration tests pass, homelab environment stable | All 🔴 (31) acceptance criteria verified |
-| **E2E** | System tests pass | Happy path per epic passes end-to-end |
-| **Regression** | All defects fixed | No 🔴 Critical / 🟡 High defects open |
+| Unit | Code compiled and interfaces stable | ≥80% service coverage; tests pass |
+| Integration | Unit tests pass; test DB available | Members, visibility, points, webhook, sync, and DB constraints pass |
+| System | Integration pass; deployment environment stable | All 43 🔴 Must Have ACs verified |
+| E2E | System pass; provider payload known | Register → donation → points → scoreboard path passes |
+| Regression | Defects fixed or accepted by PO | All active criteria covered; no open critical defects |
 
 ---
 
-## 7. Defect Management
+## 6. Defect Management
 
-### 7.1 Severity Definitions
-
-| Severity | Definition | Response Time | Resolution Time | Escalation |
-|---------|-----------|-------------|----------------|-----------|
-| 🔴 **Critical** | Data loss, security breach, system crash, points miscalculation | 1 hour | 4 hours | PO + Dev |
-| 🟡 **High** | Major feature broken, no workaround (bot command fails, API 500) | 4 hours | 1 day | Dev |
-| 🟢 **Medium** | Feature broken but workaround exists, cosmetic data issues | 1 day | 3 days | — |
-| ⚪ **Low** | Minor cosmetic, documentation, logging improvements | 3 days | Next sprint | — |
-
-### 7.2 Defect Lifecycle
-
-```mermaid
-stateDiagram-v2
-    [*] --> NEW: Found
-    NEW --> TRIAGED: Reviewed
-    TRIAGED --> IN_PROGRESS: Assigned
-    IN_PROGRESS --> FIXED: Resolved
-    FIXED --> VERIFIED: Retested
-    VERIFIED --> CLOSED: Confirmed
-    VERIFIED --> REOPENED: Still fails
-    REOPENED --> IN_PROGRESS
-    TRIAGED --> DEFERRED: Won't fix
-    TRIAGED --> DUPLICATE: Duplicate
-    DEFERRED --> [*]
-    DUPLICATE --> [*]
-    CLOSED --> [*]
-```
+| Severity | Definition | Response |
+|---------|------------|----------|
+| 🔴 Critical | Data loss, security breach, system crash, wrong/double points | Immediate PO + Dev escalation |
+| 🟡 High | Major feature broken with no acceptable workaround | Same-day triage |
+| 🟢 Medium | Workaround exists or non-critical data/UI issue | Next sprint |
+| ⚪ Low | Cosmetic/documentation improvement | Backlog |
 
 ---
 
-## 8. Risk & Mitigations
+## 7. Risk & Mitigations
 
 | Risk | Probability | Impact | Mitigation |
 |------|-----------|--------|-----------|
-| **streamer.bot not testable in CI** | High | Medium | Manual test checklist per stream; document known behaviors |
-| **YouTube API quota exhaustion during tests** | Low | High | Mock YouTube API in unit/integration tests; real API only for manual smoke |
-| **EasyDonate API rate limiting during test cycles** | Medium | Medium | Mock EasyDonate API; respect Retry-After header in tests |
-| **pg_trgm similarity threshold too loose/tight** | Medium | High | Boundary test with similarity scores 0.69, 0.70, 0.71; tune threshold based on results |
-| **Dual-source upsert data conflict** | Medium | High | Dedicated test cases for timestamp preservation (AC-001d, AC-003c) |
-| **Test environment drift from production** | Medium | Medium | Use Docker Compose with identical config; isolated `deerngo_test` DB |
-| **HMAC webhook signature verification false negative** | Low | Critical | Test with valid, invalid, and missing signatures |
+| streamer.bot not testable in CI | High | Medium | Manual checklist and recorded live-stream evidence |
+| EasyDonate payload/security differs from assumed docs | Medium | High | Provider dashboard/test-event verification before production |
+| Duplicate webhook/API event | Medium | Critical | Unique `reference_no` and transaction guard |
+| Incorrect handle match | Medium | High | Exact normalization only; active-handle uniqueness |
+| Manual handle-change point transfer error | Medium | High | Inactive old row, new zero-point row, transaction + note |
+| Public data leakage | Medium | High | Response allowlist and automated privacy tests |
+| Tunnel/backend downtime | Low | Medium | Health checks and API fallback reconciliation |
 
 ---
 
-## 9. Test Data Strategy
+## 8. Test Data Strategy
 
-### 9.1 Seed Data (from DB Schema §7)
+### 8.1 Seed Data
 
-| Data Type | Records | Key Test Scenarios |
-|-----------|---------|-------------------|
-| Subscribers | 3 (`@testviewer1`, `@testviewer2`, `@deer_fan`) | Upsert, handle normalization, display_name fallback |
-| Donations | 4 (3 matched, 1 unmatched) | Match engine, idempotent sync, 0-point exclusion |
-| OAuth Tokens | 1 (YouTube refresh token) | Token refresh flow, 401 handling |
+| Data Type | Records | Purpose |
+|-----------|---------|---------|
+| Active public member | `testviewer1`, 500 points | Exact points and scoreboard |
+| Active private member | `privateviewer`, 563 points | Banded point response and hidden scoreboard |
+| Active zero-point member | `newviewer`, 0 points | Registration and scoreboard exclusion |
+| Inactive member | `oldviewer`, 700 points | Hidden matching/query/scoreboard |
+| Donations | Synthetic references and amounts | Cutoff, exact match, duplicate, unmatched |
 
-### 9.2 Mock Data Scenarios
+### 8.2 Mock Scenarios
 
-| Scenario | Mock Response | Test Validates |
-|----------|-------------|----------------|
-| YouTube API — new subscribers | 5 new subscriber records | AC-003a: happy path creation |
-| YouTube API — upsert existing | 3 subscribers (2 existing, 1 new) | AC-003b: idempotent upsert |
-| YouTube API — 403 quota exceeded | `{"error": {"code": 403, "message": "quotaExceeded"}}` | AC-003e: graceful skip |
-| YouTube API — 401 token expired | `{"error": {"code": 401, "message": "Unauthorized"}}` | AC-003f: operator alert |
-| EasyDonate — new donations | 3 donation records | AC-020a: happy path sync |
-| EasyDonate — duplicate donation | Same `easydonate_id` as existing | AC-020b: idempotent skip |
-| EasyDonate — 429 rate limit | `429` + `Retry-After: 60` header | AC-020c: backoff + retry |
-| Webhook — valid signature | Correct HMAC-SHA256 | Donation stored with `match_status=pending` |
-| Webhook — invalid signature | Wrong HMAC | 401 rejection |
+| Scenario | Mock | Validates |
+|----------|------|-----------|
+| New registration | Valid user ID + `@Viewer123` | AC-001a / AC-002a |
+| Same registration | Same user ID/handle | AC-001b / AC-002b |
+| Handle change | Same user ID/new handle | AC-001c / AC-002c |
+| Active handle conflict | Different ID/same handle | AC-001d / AC-002d |
+| Donor formatting | `@Deer123`, ` deer123 `, `DEER123` | AC-021a/b |
+| Pre-registration donation | Donation time before registration | AC-021d |
+| Duplicate provider event | Same `referenceNo` twice | AC-020b / AC-021g |
+| Provider rate limit | 429 + Retry-After | AC-020d |
+| Invalid webhook | Bad path/amount/required field | AC-020g |
+| Public data inspection | API response fixture | AC-031f |
 
 ---
 
-## 10. Traceability Matrix (Summary)
+## 9. Active Traceability Summary
 
 | User Story | ACs | 🔴 | 🟡 | Test Cases | Epic |
 |------------|-----|-----|-----|-----------|------|
-| US-001 | 6 | 4 | 2 | TC-001 → TC-006 | E-01 |
-| US-002 | 5 | 3 | 2 | TC-007 → TC-011 | E-01 |
-| US-003 | 7 | 5 | 2 | TC-012 → TC-018 | E-01 |
-| US-010 | 4 | 2 | 2 | TC-019 → TC-022 | E-02 |
-| US-011 | 4 | 3 | 1 | TC-023 → TC-026 | E-02 |
-| US-012 | 4 | 3 | 1 | TC-027 → TC-030 | E-02 |
-| US-020 | 5 | 3 | 2 | TC-031 → TC-035 | E-03 |
-| US-021 | 6 | 4 | 2 | TC-036 → TC-041 | E-03 |
-| US-022 | 5 | 4 | 1 | TC-042 → TC-046 | E-03 |
-| US-030 | 5 | 0 | 5 | TC-047 → TC-051 | E-04 |
-| US-031 | 5 | 0 | 5 | TC-052 → TC-056 | E-04 |
-| **Total** | **54** | **31** | **23** | **56** | |
+| US-001 | 7 | 7 | 0 | TC-M001–M007 | E-01 |
+| US-002 | 6 | 5 | 1 | TC-M008–M013 | E-01 |
+| US-010 | 4 | 2 | 2 | TC-M014–M017 | E-02 |
+| US-011 | 6 | 6 | 0 | TC-M018–M023 | E-02 |
+| US-012 | 7 | 6 | 1 | TC-M024–M030 | E-02 |
+| US-020 | 7 | 5 | 2 | TC-M031–M037 | E-03 |
+| US-021 | 7 | 6 | 1 | TC-M038–M044 | E-03 |
+| US-022 | 6 | 6 | 0 | TC-M045–M050 | E-03 |
+| US-030 | 6 | 0 | 6 | TC-M051–M056 | E-04 |
+| US-031 | 6 | 0 | 6 | TC-M057–M062 | E-04 |
+| **Total** | **62** | **43** | **19** | **TC-M001–M062** | |
 
-> Full test case details in [[042_test_cases]]
+Superseded US-003/TC-012–TC-018 are retained only in historical QA records and are not part of active regression.
 
 ---
 
-## 11. Quality Metrics
+## 10. Quality Metrics
 
 | Metric | Target | Measurement |
 |--------|--------|------------|
-| 🔴 AC Coverage | 100% (31/31) | Traceability matrix |
-| 🟡 AC Coverage | ≥ 80% (≥ 18/23) | Traceability matrix |
-| Unit Test Coverage (service layer) | ≥ 80% | Go `cover` tool |
-| Defect Escape Rate | < 5% | Post-release defects / total defects |
-| Test Case Pass Rate | ≥ 95% | Test execution summary |
-| Regression Pass Rate | 100% | CI pipeline |
+| 🔴 AC coverage | 100% (43/43) | Active traceability |
+| 🟡 AC coverage | 100% (19/19) before release | Active traceability |
+| Service-layer coverage | ≥80% | Go cover |
+| Point correctness | 100% eligible donations applied exactly once | Reconciliation |
+| Public data compliance | 100% sampled responses pass allowlist | API tests |
+| Regression pass rate | 100% active criteria | Test report |
 
 ---
 
@@ -288,15 +254,15 @@ stateDiagram-v2
 
 | Document | Relationship |
 |----------|-------------|
-| [[013_acceptance_criteria]] | Primary test case source — 54 BDD criteria |
-| [[012_user_stories]] | User stories mapped to test cases |
-| [[022_API_specification]] | API contract for integration testing |
-| [[023_database_schema_DDL]] | Database integrity verification |
-| [[029_architecture_overview]] | System architecture for E2E test planning |
-| [[042_test_cases]] | Detailed test cases |
+| [[013_acceptance_criteria]] | Primary active criteria |
+| [[012_user_stories]] | Stories mapped to tests |
+| [[022_API_specification]] | API contract |
+| [[023_database_schema_DDL]] | DB integrity |
+| [[042_test_cases]] | Detailed case execution |
 | [[043_defect_report]] | Defect tracking |
+| [[045_coverage_report]] | Coverage summary |
 
 ---
 
-> **Template Standard:** Based on SWEBOK v4, ISO/IEC/IEEE 29119
-> **Usage:** This plan is the *contract* for testing Deerngo Bot Phase 1. Everyone knows what's tested, when, and by whom.
+> **Template Standard:** Based on SWEBOK v4 and ISO/IEC/IEEE 29119
+> **Usage:** Current test contract for the member-based Phase 1 MVP.

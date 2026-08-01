@@ -1,14 +1,14 @@
 ---
 document_type: Release Notes
-version: "0.1"
+version: "0.2"
 status: Draft
-author: "DevOps"
+author: "DevOps / PO"
 created: "2026-07-30"
-last_updated: "2026-07-30"
+last_updated: "2026-08-02"
 project_name: "Deerngo Bot"
 project_id: "DERNBOT-001"
 classification: "Internal"
-tags: [release-notes, changelog, swebok, conventional-commits]
+tags: [release-notes, changelog, swebok, conventional-commits, members, privacy]
 standard_ref:
   - SWEBOK v4 — Operations
   - Conventional Commits v1.0
@@ -18,184 +18,139 @@ parent_project: "Deerngo Bot — VRM"
 # Release Notes
 
 > **Project:** Deerngo Bot — Viewer Relationship Management (VRM)
-> **Version:** 0.1 | **Status:** Draft
-> **Last Updated:** 2026-07-30
-
----
-
-## Document Control
-
-| Field | Value |
-|-------|-------|
-| Document Owner | DevOps / PO |
-| Format | Conventional Commits → auto-compiled |
-| Repositories | `deerngo-bot` (Go), `deerngo-web` (Next.js) |
-
-### Revision History
-
-| Version | Date | Author | Change Description |
-|---------|------|--------|--------------------|
-| 0.1 | 2026-07-30 | DevOps | Initial release notes template |
+> **Version:** 0.2 | **Status:** Draft
+> **Last Updated:** 2026-08-02
+>
+> This release-note baseline reflects the revised explicit-member MVP. It is a planning document; no release is claimed until Dev/QA provide execution evidence.
 
 ---
 
 ## 1. Purpose
 
-> Communicates what changed in each release — new features, improvements, bug fixes, and known issues. Auto-generated from conventional commit messages, reviewed by PO before publishing.
+Communicate product/runtime changes per release. Notes are generated from commits/issues, then reviewed by PO before publication. Never include secrets, raw donor data, or unverified provider claims.
 
----
-
-## 2. How to Generate Release Notes
-
-### From Git Log (Manual)
-
-```bash
-# Backend — changes since last tag
-cd deerngo-bot
-git log $(git describe --tags --abbrev=0)..HEAD --oneline --no-merges
-
-# Frontend — changes since last tag
-cd deerngo-web
-git log $(git describe --tags --abbrev=0)..HEAD --oneline --no-merges
-```
-
-### From GitHub (Auto)
-
-GitHub auto-generates release notes from PRs when creating a release:
-1. Go to repo → Releases → Draft new release
-2. Choose tag (e.g., `v0.1.0`)
-3. Click "Generate release notes"
-4. Review and edit
-
----
-
-## 3. Release Template
-
-Copy this template for each new release:
-
----
+## 2. Release Template
 
 ### vX.Y.Z — YYYY-MM-DD
 
 **Release Type:** Major / Minor / Patch
 **Deployed:** YYYY-MM-DD HH:MM (UTC+7)
 
-#### 🚀 New Features
+#### New Features
 
 | # | Feature | Repo | Description | Related |
 |---|---------|------|-------------|---------|
-| 1 | | deerngo-bot / deerngo-web | | |
+| 1 | | | | |
 
-#### ✨ Improvements
+#### Improvements
 
 | # | Improvement | Before | After |
-|---|-----------|--------|-------|
+|---|-------------|--------|-------|
 | 1 | | | |
 
-#### 🐛 Bug Fixes
+#### Bug Fixes
 
 | # | Fix | Issue | Impact |
 |---|-----|-------|--------|
 | 1 | | | |
 
-#### ⚠️ Known Issues
+#### Known Issues / Gates
 
 | # | Issue | Workaround | Fix Planned |
-|---|-------|-----------|------------|
-| 1 | | | |
+|---|-------|-----------|-------------|
+| 1 | EasyDonate provider webhook contract not verified | Keep production webhook disabled or use approved provider-confirmed path | Issue #18 |
+| 2 | Manual point correction required after handle change | Controlled DB transaction + adjustment note | Issue #19; admin console Phase 2 |
+| 3 | Privacy notice/removal gate | Do not release public scoreboard until owner approves | DEF-S009 |
 
-#### 📦 Infrastructure Changes
+#### Infrastructure Changes
 
 | # | Change | Description |
 |---|--------|-------------|
-| 1 | | |
+| 1 | Database | New `members`/revised `donations` migrations; no automatic historical migration |
+| 2 | Webhook | Provider-confirmed auth or unpredictable path-token fallback |
+| 3 | Public API | Allowlist active/public/points>0 handle+points only |
 
-#### 🔄 Migration Notes
+#### Migration Notes
 
 | # | Action Required | Who | When |
 |---|----------------|-----|------|
-| 1 | | Dev / DevOps | Before / After deploy |
-
-#### 📊 Release Metrics
-
-| Metric | Value |
-|--------|-------|
-| Total commits | |
-| Features | |
-| Bug fixes | |
-| Files changed | |
+| 1 | Back up database before migration | DevOps | Before deploy |
+| 2 | Verify EasyDonate payload/security | Dev/DevOps | Before webhook production |
+| 3 | Verify streamer.bot action payloads | Dev/QA | Before live test |
+| 4 | Confirm privacy notice/visibility behavior | PO/Owner | Before scoreboard release |
 
 ---
 
-## 4. Planned Releases
+## 3. Current Planned Release — v0.1.0 Phase 1 MVP
 
-### v0.1.0 — Phase 1 MVP (Planned)
-
-**Release Type:** Major (initial release)
+**Release Type:** Major (initial active product)
 **Target:** Phase 1 MVP completion
 
-#### 🚀 New Features (Planned)
+### Planned Features
 
 | # | Feature | Repo | Description | User Story |
 |---|---------|------|-------------|-----------|
-| 1 | Subscriber Registration (Hybrid) | deerngo-bot | YouTube API polling (24/7) + streamer.bot real-time (during live) | US-001, US-002, US-003 |
-| 2 | Donate Chat Command | deerngo-bot | `:deer: donate` → posts EasyDonate link | US-010 |
-| 3 | Point Chat Command | deerngo-bot | `:deer: point` → shows viewer's points | US-011 |
-| 4 | EasyDonate Webhook | deerngo-bot | Real-time donation capture via webhook | US-020 |
-| 5 | EasyDonate API Sync | deerngo-bot | Polling fallback every 5 min | US-020 |
-| 6 | Name Matching Engine | deerngo-bot | Fuzzy matching via `pg_trgm` (threshold 0.7) | US-021 |
-| 7 | Point Query API | deerngo-bot | `GET /api/v1/points/{handle}` | US-022 |
-| 8 | Scoreboard API | deerngo-bot | `GET /api/v1/scoreboard` with pagination | US-030 |
-| 9 | Public Scoreboard | deerngo-web | Next.js page with viewer rankings | US-031 |
-| 10 | CI/CD Pipeline | infra | GitHub Actions → GHCR → Homelab deploy | — |
+| 1 | Explicit Member Registration | deerngo-bot | `:deer: register` uses actual streamer.bot identity; starts 0 points | US-001, US-002 |
+| 2 | Donate Chat Command | deerngo-bot/integration | `:deer: donate` posts EasyDonate link | US-010 |
+| 3 | Visibility Commands | deerngo-bot/integration | `:deer: public` / `:deer: private` | US-012 |
+| 4 | Visibility-Aware Point Command | deerngo-bot | Exact public points or 100-point private band | US-011, US-022 |
+| 5 | EasyDonate Webhook | deerngo-bot | Primary donation capture; contract must be verified | US-020 |
+| 6 | EasyDonate API Sync | deerngo-bot | Fallback reconciliation every configured interval | US-020 |
+| 7 | Normalized Exact Matcher | deerngo-bot | Active member handle match; 1 THB = 1 point; cutoff/once-only | US-021 |
+| 8 | Scoreboard API | deerngo-bot | Paginated active/public/points>0 handle+points projection | US-031 |
+| 9 | Public Scoreboard | deerngo-web | Public responsive page with no login and no display names | US-030 |
 
-#### 📦 Infrastructure
+### Removed from Active Release
+
+- YouTube subscriber polling/OAuth
+- Automatic subscriber registration
+- Subscriber table as points eligibility source
+- `viewer_points` summary table
+- pg_trgm fuzzy matching
+- Automatic historical donation credit
+- Admin console
+- Automatic CI/CD production deployment
+
+### Infrastructure
 
 | # | Change | Description |
 |---|--------|-------------|
 | 1 | Docker Compose | `deerngo-bot` + `deerngo-web` on `db-network` |
-| 2 | GitHub Actions | Lint → Test → Build → Push → Deploy |
-| 3 | GHCR Registry | `ghcr.io/deerngo/deerngo-bot`, `ghcr.io/deerngo/deerngo-web` |
-| 4 | Nginx Config | Host-level proxy for scoreboard (`:3008` → public) |
-| 5 | Cloudflare Tunnel | Scoreboard exposed at `deerngo-viewer-score.panomete.com` |
+| 2 | PostgreSQL | `members`, `donations`, optional `point_adjustment_notes` |
+| 3 | Cloudflare Tunnel | Public scoreboard + intentionally configured webhook route |
+| 4 | Manual deployment | Backup → migrate → compose → health/privacy/live smoke |
 
----
-
-## 5. Release History
+## 4. Release History
 
 | Version | Date | Type | Features | Fixes | Status |
 |---------|------|------|---------|-------|--------|
-| v0.1.0 | TBD | Major | 10 | 0 | 🔜 Planned |
+| v0.1.0 | TBD | Major | 9 planned feature groups | 0 | 🔜 Planned |
 
----
-
-## 6. Conventional Commit → Release Note Mapping
+## 5. Conventional Commit Mapping
 
 | Commit Type | Release Section |
 |-------------|----------------|
-| `feat` | 🚀 New Features |
-| `fix` | 🐛 Bug Fixes |
-| `perf` | ✨ Improvements |
-| `refactor` | ✨ Improvements |
-| `docs` | (omitted from release notes) |
-| `chore` | 📦 Infrastructure Changes |
-| `ci` | 📦 Infrastructure Changes |
-| `build` | 📦 Infrastructure Changes |
-| `test` | (omitted from release notes) |
-| `style` | (omitted from release notes) |
-
----
+| `feat` | New Features |
+| `fix` | Bug Fixes |
+| `perf` / `refactor` | Improvements |
+| `docs` | Usually omitted; link if contract changed |
+| `chore` / `ci` / `build` | Infrastructure |
+| `test` / `style` | Usually omitted |
 
 ## Related Documents
 
 | Document | Relationship |
 |----------|-------------|
-| [[052_deployment_plan]] | How this release was deployed |
-| [[034_SHARED_commit_messages_changelog]] | Commit-level changes (source data) |
-| [[041_test_plan]] | What was tested |
-| [[043_defect_report]] | Known defects |
+| [[052_deployment_plan]] | Deployment procedure and gates |
+| [[054_operations_manual_runbook]] | Operations and correction procedure |
+| [[034_SHARED_commit_messages_changelog]] | Commit-level source |
+| [[041_test_plan]] | Test scope |
+| [[043_defect_report]] | Known blockers |
+| `external_plan/phase1-deerngo-bot-mvp.md` | Phase plan |
 
 ---
 
-> **Template Standard:** Based on SWEBOK v4, Conventional Commits v1.0
-> **Usage:** Release notes are for *everyone* — developers, PO, users. Write them for humans, not machines.
+> **Template Standard:** Based on SWEBOK v4 and Conventional Commits v1.0
+> **Usage:** Release notes are published only from verified deployment/test evidence.
+---
+

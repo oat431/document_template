@@ -1,15 +1,15 @@
 ---
 document_type: README (Frontend)
-version: "0.1"
+version: "0.2"
 status: Draft
-author: "SA / Designer Persona"
+author: "SA / PO"
 created: "2026-07-30"
-last_updated: "2026-07-30"
+last_updated: "2026-08-02"
 project_name: "Deerngo Bot"
 project_id: "DERNBOT-001"
 repo_type: "FE"
 classification: "Internal"
-tags: [readme, developer-guide, onboarding, nextjs, frontend, react, tailwind, daisyui]
+tags: [readme, developer-guide, onboarding, nextjs, frontend, react, tailwind, daisyui, privacy]
 standard_ref:
   - SWEBOK v4 — Construction
   - 12-Factor App Methodology
@@ -20,8 +20,10 @@ parent_project: "Deerngo Bot — VRM"
 
 > **Project:** Deerngo Bot — Viewer Relationship Management (VRM)
 > **Repo:** `deerngo-web` (frontend)
-> **Version:** 0.1 | **Status:** Draft
-> **Last Updated:** 2026-07-30
+> **Version:** 0.2 | **Status:** Draft
+> **Last Updated:** 2026-08-02
+>
+> Phase 1 is a public read-only scoreboard for eligible registered members. It does not provide login or member self-service.
 
 ---
 
@@ -29,35 +31,53 @@ parent_project: "Deerngo Bot — VRM"
 
 # Deerngo Bot — Frontend 🦌
 
-> Next.js frontend for the Deerngo Bot VRM system — public scoreboard displaying viewer contribution rankings.
+> Next.js frontend for the public, privacy-filtered contributor scoreboard.
 
 | Aspect | Detail |
 |--------|--------|
 | **Framework** | Next.js 15+ (App Router) |
 | **UI Library** | React 19 |
 | **CSS** | Tailwind CSS 4+ + DaisyUI 5+ |
-| **Data Fetching** | SWR |
+| **Data Fetching** | SWR or fetch with controlled refresh |
 | **Port** | 3008 |
 | **Deployment** | Docker on homelab (`db-network`) |
 
----
+## Public Data Contract
+
+Consume `GET /api/v1/scoreboard` from `oat431/deerngo-bot`.
+
+Allowed data:
+
+```text
+rank
+youtube_handle
+total_points
+pagination metadata
+```
+
+Do not request, render, cache, or log:
+
+- YouTube display names
+- YouTube user IDs
+- Raw EasyDonate donor names
+- Donation messages
+- Private/inactive/zero-point members
+
+The backend is the source of truth for filtering. The frontend must still treat the response as untrusted input and render only the allowlisted fields.
 
 ## Quick Start
 
 ### Prerequisites
 
-- **Node.js** 22 LTS
-- **Backend** running on `:8008` (or set `NEXT_PUBLIC_API_URL`)
+- Node.js 22 LTS
+- Backend running on `:8008` (or set `NEXT_PUBLIC_API_URL`)
 
 ### Install & Run
 
 ```bash
-# Install dependencies
 npm install
-
-# Development mode (hot reload)
 npm run dev
-# → Frontend starts on http://localhost:3008
+# → http://localhost:3008
 ```
 
 ### Production Build
@@ -67,90 +87,87 @@ npm run build
 npm start
 ```
 
-### Docker
-
-```bash
-npm run docker:build
-docker run -p 3008:3008 deerngo-web:latest
-```
-
 ### Verify
 
 ```bash
 open http://localhost:3008
-# Expected: Scoreboard page (may be empty initially)
+# Expected: scoreboard page with data, empty state, or unavailable state
 ```
-
----
 
 ## Configuration
 
 | Variable | Required | Default | Description |
-|----------|:--------:|---------|------------|
-| `NEXT_PUBLIC_API_URL` | ✅ | `http://localhost:8008` | Go backend URL |
-
----
+|----------|:--------:|---------|-------------|
+| `NEXT_PUBLIC_API_URL` | ✅ | `http://localhost:8008` | Go backend base URL |
 
 ## Project Structure
 
-```
+```text
 deerngo-web/
 ├── src/
 │   ├── app/
-│   │   ├── layout.tsx          # Root layout (DaisyUI theme)
-│   │   ├── page.tsx            # Scoreboard page
+│   │   ├── layout.tsx          # Root layout / Deer_NGO theme
+│   │   ├── page.tsx            # Public scoreboard page
 │   │   └── globals.css         # Tailwind + DaisyUI imports
 │   ├── components/
-│   │   ├── Scoreboard.tsx      # Scoreboard table component
-│   │   ├── ScoreboardRow.tsx   # Individual row
+│   │   ├── Scoreboard.tsx      # Allowlisted scoreboard table/list
+│   │   ├── ScoreboardRow.tsx   # Handle + points row
 │   │   ├── EmptyState.tsx      # "No contributors yet"
-│   │   ├── ErrorState.tsx      # "Temporarily unavailable"
-│   │   └── LoadingState.tsx    # Skeleton/spinner
+│   │   ├── ErrorState.tsx       # "Scoreboard temporarily unavailable"
+│   │   └── LoadingState.tsx     # Skeleton/spinner
 │   └── lib/
-│       ├── api.ts              # SWR fetcher for backend API
-│       └── types.ts            # TypeScript types
+│       ├── api.ts              # Scoreboard fetcher
+│       └── types.ts            # Public response types only
 ├── public/
-│   └── favicon.ico             # 🦌 deer emoji
 ├── package.json
-├── tailwind.config.ts          # DaisyUI "deerngo" theme
+├── tailwind.config.ts
 ├── tsconfig.json
 ├── next.config.ts
 ├── Dockerfile
 └── README.md
 ```
 
----
+## UI States
 
-## Design References
+- **Loading:** accessible skeleton while the API request runs.
+- **Happy path:** normalized handles and points, sorted by backend rank.
+- **Empty:** `No contributors yet. Be the first!`.
+- **Error:** `Scoreboard temporarily unavailable` with retry.
+- **Responsive:** mobile card/list layout; no data hidden in inaccessible hover-only UI.
+- **Refresh:** update within 60 seconds under normal backend/provider conditions.
 
-| Document | Path | Purpose |
-|----------|------|---------|
-| Wireframes | `02_design/026_FE_wireframes_lofi.md` | UI layout (5 screens) |
-| Style Guide | `02_design/028_FE_style_guide.md` | Colors, typography, DaisyUI theme |
-| API Specification | `02_design/022_SHARED_API_specification.md` | Scoreboard response structure |
+## Privacy and Accessibility
 
----
+- Do not add a display-name column back to the UI.
+- Public scoreboard participation is controlled by the backend member visibility flag.
+- Do not implement login/authentication in Phase 1.
+- Use semantic headings/table or accessible list semantics, keyboard navigation, sufficient color contrast, and visible focus states.
 
 ## Testing
 
 ```bash
-npm test              # Run Vitest
-npm run lint          # ESLint
-npm run type-check    # TypeScript check
+npm test
+npm run lint
+npm run type-check
+npm run build
 ```
 
----
+Tests must cover the API allowlist, private/inactive/zero-point exclusion, empty/error/loading states, pagination, responsive layout, and keyboard accessibility.
 
 ## Related Documents
 
-| Document | Path | Purpose |
-|----------|------|---------|
-| Wireframes | `02_design/026_FE_wireframes_lofi.md` | UI structure |
-| Style Guide | `02_design/028_FE_style_guide.md` | Visual design |
-| API Specification | `02_design/022_SHARED_API_specification.md` | Backend API contract |
-| Build Scripts | `03_construction/034_FE_build_scripts.md` | Build pipeline |
-| Dependency Manifest | `03_construction/036_FE_dependency_manifest.md` | Node dependencies |
+| Document | Path |
+|----------|------|
+| User Stories | `01_requirement/012_user_stories.md` |
+| Acceptance Criteria | `01_requirement/013_acceptance_criteria.md` |
+| API Specification | `02_design/022_API_specification.md` |
+| Architecture Overview | `02_design/029_architecture_overview.md` |
+| Wireframes | `02_design/026_wireframes_lofi.md` |
+| Style Guide | `02_design/028_style_guide.md` |
+| Backend dependency | `https://github.com/oat431/deerngo-bot/issues/10` |
 
 ---
 
 > **Template Standard:** Based on SWEBOK v4, 12-Factor App
+> **Usage:** Frontend construction guide for the privacy-safe member scoreboard.
+---

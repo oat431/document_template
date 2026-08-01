@@ -1,15 +1,15 @@
 ---
 document_type: Code Review Records (Backend)
-version: "0.1"
+version: "0.2"
 status: Draft
-author: "SA / Designer Persona"
+author: "SA / Dev"
 created: "2026-07-30"
-last_updated: "2026-07-30"
+last_updated: "2026-08-02"
 project_name: "Deerngo Bot"
 project_id: "DERNBOT-001"
 repo_type: "BE"
 classification: "Internal"
-tags: [code-review, pull-request, go, backend, swebok, iso-20246]
+tags: [code-review, pull-request, go, backend, swebok, iso-20246, members, points, privacy]
 standard_ref:
   - SWEBOK v4 — Construction
   - ISO/IEC 20246 — Work Product Reviews
@@ -19,171 +19,130 @@ parent_project: "Deerngo Bot — VRM"
 # Code Review Records — Deerngo Bot Backend (Go)
 
 > **Project:** Deerngo Bot — VRM | **Repo:** `deerngo-bot` (backend)
-> **Version:** 0.1 | **Status:** Draft
-> **Last Updated:** 2026-07-30
+> **Version:** 0.2 | **Status:** Draft
+> **Last Updated:** 2026-08-02
+>
+> Every PR is reviewed against the active member-based contract. Historical subscriber/poller code must not be reintroduced without an approved scope change.
 
----
-
-## 1. Purpose
-
-> Code review records for the Deerngo Bot Go backend. Code review is **quality gate #1**. Every PR gets reviewed. Review agents use the checklist below to ensure consistent, thorough reviews.
-
----
-
-## 2. Code Review Process
+## 1. Review Process
 
 ```mermaid
 flowchart TD
-    PR[Pull Request Created] --> AUTO[Automated Checks]
-    AUTO --> CHECK{All Pass?}
-    CHECK -->|No| FIX_AUTO[Fix: lint, test, build]
-    FIX_AUTO --> PR
-    CHECK -->|Yes| REVIEW[Agent / Peer Review]
+    PR[Pull Request] --> AUTO[Format / Lint / Test / Scan]
+    AUTO --> CHECK{Pass?}
+    CHECK -->|No| FIX[Fix and rerun]
+    FIX --> AUTO
+    CHECK -->|Yes| REVIEW[Human/Agent Review]
     REVIEW --> FINDINGS{Findings?}
-    FINDINGS -->|Yes| DISCUSS[Discuss & Fix]
+    FINDINGS -->|Yes| DISCUSS[Fix or PO-approved defer]
     DISCUSS --> REVIEW
     FINDINGS -->|No| APPROVE[Approve]
-    APPROVE --> MERGE[Merge]
+    APPROVE --> MERGE[Squash merge]
 
-    style PR fill:#2196F3,color:#fff
     style AUTO fill:#FF9800,color:#fff
     style REVIEW fill:#9C27B0,color:#fff
     style APPROVE fill:#4CAF50,color:#fff
     style MERGE fill:#4CAF50,color:#fff
 ```
 
----
-
-## 3. Review Standards
+## 2. Review Standards
 
 | Aspect | Standard |
 |--------|---------|
-| PR Size | < 400 lines changed |
-| Reviewers | Minimum 1 (agent or human) |
-| Response Time | < 24 hours |
-| Tests | Required for all feature/fix changes |
-| Automated Checks | Must pass: `golangci-lint`, `go test`, `go build` |
-| Commit Hygiene | Conventional Commits per [[034_SHARED_commit_messages_changelog]] |
+| PR Size | Prefer <400 changed lines |
+| Reviewers | Minimum one reviewer |
+| Tests | Required for all behavior changes |
+| Automated | `gofmt`, `go vet`, linter, tests, build, vulnerability scan |
+| Contract | API/DDL/AC updated together |
+| Secrets | No credentials/provider payloads in code or logs |
 
----
+## 3. Automated Checklist
 
-## 4. Review Checklist — Go Backend
+| # | Check | Command |
+|---|-------|---------|
+| 1 | Formatting | `gofmt -d .` |
+| 2 | Lint | `golangci-lint run` |
+| 3 | Tests | `go test -race ./...` |
+| 4 | Build | `go build ./...` |
+| 5 | Vulnerabilities | `govulncheck ./...` |
+| 6 | Migration tests | Apply/rollback in isolated PostgreSQL |
+| 7 | Diff sanity | `git diff --check` |
 
-### 4.1 Automated Checks (Must Pass)
+## 4. Manual Checklist — Active MVP
 
-| # | Check | Command | Category |
-|---|-------|---------|---------|
-| 1 | Formatting | `gofmt -d .` (no diff) | Style |
-| 2 | Imports grouped | `goimports -d .` (stdlib / external / internal) | Style |
-| 3 | Linting | `golangci-lint run` (no errors) | Style |
-| 4 | Tests pass | `go test ./...` | Testing |
-| 5 | Build succeeds | `go build ./...` | Build |
-| 6 | No vulnerabilities | `govulncheck ./...` | Security |
+### Domain and Data
 
-### 4.2 Manual Review Checklist
+- [ ] Member registration trusts actual streamer.bot identity, not typed handle.
+- [ ] Handle normalization is trim + one leading `@` removal + lowercase only.
+- [ ] Active user and active handle uniqueness are enforced in DB.
+- [ ] Same-handle registration is idempotent.
+- [ ] Changed-handle registration is atomic: old inactive/points preserved, new active/0 points.
+- [ ] No display-name field is introduced.
+- [ ] Inactive members cannot be matched/queried/shown normally.
+- [ ] Donation cutoff uses actual donation timestamp.
+- [ ] Exact matching only; no fuzzy/`pg_trgm` attribution.
+- [ ] Duplicate/concurrent donation processing cannot double-count.
+- [ ] Manual correction path records before/after/reason/operator.
 
-| # | Check | Category | What to Look For |
-|---|-------|---------|-----------------|
-| 7 | Error handling | Reliability | All errors checked, wrapped with `fmt.Errorf("...: %w", err)`, no swallowed errors |
-| 8 | Context propagation | Reliability | `context.Context` passed through all layers, used for cancellation |
-| 9 | SQL injection | Security | All queries use sqlx named parameters or `?` placeholders — NO string concatenation |
-| 10 | Secret handling | Security | No hardcoded secrets — all from env vars via `config.go` |
-| 11 | Resource cleanup | Reliability | `defer rows.Close()`, `defer resp.Body.Close()` — no leaks |
-| 12 | Goroutine leaks | Reliability | Goroutines have exit conditions (`ctx.Done()`, channels) |
-| 13 | Error wrapping | Maintainability | Errors wrapped with context: `fmt.Errorf("upserting subscriber: %w", err)` |
-| 14 | Naming | Style | Follows [[035_BE_coding_standards]] — PascalCase exported, camelCase unexported |
-| 15 | Test coverage | Testing | New code has tests — ≥ 80% on service layer |
-| 16 | Table-driven tests | Testing | Multiple input/output cases use `[]struct{}` pattern |
-| 17 | API contract | Documentation | Endpoint changes match [[022_SHARED_API_specification]] |
-| 18 | DB schema | Documentation | New queries match [[023_BE_database_schema_DDL]] |
-| 19 | Scheduler safety | Reliability | Schedulers handle errors gracefully, don't crash on single failure |
-| 20 | Fiber handler pattern | Style | Handlers delegate to service layer — no business logic in handlers |
+### API and Security
 
-### 4.3 Sprint-Specific Checks
+- [ ] Error shapes match API specification.
+- [ ] Webhook provider contract is verified; no assumed HMAC.
+- [ ] Path-token fallback is random, secret, validated, rate-limited, and body-limited if needed.
+- [ ] EasyDonate API key is backend-only.
+- [ ] Public scoreboard response contains only rank/handle/points/pagination metadata.
+- [ ] CORS is explicit; internal routes are not wildcard-enabled.
+- [ ] Logs redact keys, path tokens, donor data, display names, and full payloads.
+
+### Maintainability
+
+- [ ] Handlers delegate business logic to services.
+- [ ] Repositories use parameterized sqlx queries.
+- [ ] Context cancellation/row closure/HTTP response body closure are correct.
+- [ ] Tests cover happy/error/concurrency/privacy cases.
+- [ ] Documentation links point to current versioned files.
+
+## 5. Sprint Focus
 
 | Sprint | Focus | Extra Checks |
-|--------|-------|-------------|
-| Sprint 1 | Subscribers + Donate | Upsert logic preserves earliest timestamp; streamer.bot payload validation |
-| Sprint 2 | Points + Matcher | pg_trgm threshold is configurable; anonymous donations flagged as unmatched |
-| Sprint 3 | Scoreboard | `WHERE total_points > 0` filter present; pagination works correctly |
+|--------|-------|--------------|
+| Sprint 1 | Members + donate | Schema, normalization, registration transaction, action identity |
+| Sprint 2 | Points + ingestion | Provider contract, cutoff, exact match, exactly-once, visibility |
+| Sprint 3 | Scoreboard/release | Allowlist, pagination, privacy, manual correction, deployment gate |
 
----
-
-## 5. Review Metrics
-
-| Metric | Target | Current |
-|--------|--------|---------|
-| PRs reviewed per sprint | > 5 | — |
-| Avg time to first review | < 24h | — |
-| Findings per PR | < 5 | — |
-| Critical/blocking findings | 0 | — |
-| Review coverage | 100% | — |
-| Rework rate (> 2 rounds) | < 20% | — |
-
----
-
-## 6. Common Findings — Go
-
-| Finding | Frequency | Prevention |
-|---------|:---:|-----------|
-| Missing error check after DB call | High | Checklist #7 |
-| `context.Context` not propagated | Medium | Checklist #8 |
-| SQL string concatenation | Low | Checklist #9 — use sqlx |
-| Goroutine without exit condition | Medium | Checklist #12 |
-| Missing `defer rows.Close()` | Medium | Checklist #11 |
-| Business logic in handler | Medium | Checklist #20 |
-| No test for error path | Medium | Checklist #15 |
-
----
-
-## 7. Review Record Template
+## 6. Review Record Template
 
 ```markdown
-### Review #001 — [Feature / Fix Summary]
+### Review #NNN — [Feature/Fix]
 
 | Field | Detail |
 |-------|--------|
-| **PR** | [#N](link) |
-| **Author** | Dev / Agent |
-| **Reviewer** | Review Agent / Human |
-| **Date** | YYYY-MM-DD |
-| **Type** | feat / fix / refactor / chore |
-| **Lines Changed** | +XX / -YY |
-| **Sprint** | Sprint N |
+| PR | [link] |
+| Author | |
+| Reviewer | |
+| Date | |
+| Story/Issue | |
+| Sprint | |
 
-**Findings:**
+| # | Severity | Category | Finding | Resolution |
+|---|:--------:|----------|---------|------------|
 
-| # | Severity | Category | Description | Resolution |
-|---|:---:|---------|-------------|-----------|
-| 1 | 🔴 | Security | Hardcoded DB password in config.go | Extracted to env var |
-| 2 | 🟡 | Testing | Missing test for duplicate easydonate_id | Added test |
-| 3 | 🟢 | Style | Variable name too short (`h` → `handle`) | Renamed |
-
-**Outcome:** ✅ Approved / 🔄 Changes Requested / ❌ Rejected
-
-**Lessons Learned:** [One takeaway to prevent recurrence]
+Outcome: ✅ Approved / 🔄 Changes Requested / ❌ Rejected / ⏸️ Blocked
 ```
-
-### Severity Legend
-
-| Level | Meaning | Example |
-|:---:|---------|---------|
-| 🔴 | **Critical** — blocks merge | Security vulnerability, data loss risk, SQL injection |
-| 🟡 | **Important** — fix before merge | Missing tests, swallowed errors, missing context |
-| 🟢 | **Nit** — non-blocking | Variable naming, minor style, optional refactor |
-
----
 
 ## Related Documents
 
 | Document | Path |
 |----------|------|
 | Coding Standards | `03_construction/035_BE_coding_standards.md` |
-| Commit Messages | `03_construction/034_SHARED_commit_messages_changelog.md` |
-| API Specification | `02_design/022_SHARED_API_specification.md` |
-| DB Schema | `02_design/023_BE_database_schema_DDL.md` |
+| Security Standards | `06_security/062_coding_standards_security.md` |
+| API Specification | `02_design/022_API_specification.md` |
+| DB Schema | `02_design/023_database_schema_DDL.md` |
+| Commit Guidance | `03_construction/034_SHARED_commit_messages_changelog.md` |
+| Scope Handoff | `07_pm/072_MM07_po-to-dev-qa-member-registration-mvp_20260802.md` |
 
 ---
 
-> **Template Standard:** Based on SWEBOK v4, ISO/IEC 20246
-> **Usage:** Review agents use the checklist for every PR. Track metrics. Capture significant findings.
+> **Template Standard:** Based on SWEBOK v4 and ISO/IEC 20246
+> **Usage:** Mandatory review checklist for the revised member-based MVP.
+---

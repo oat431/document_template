@@ -1,14 +1,14 @@
 ---
 document_type: Regression Test Suite
-version: "0.1"
+version: "0.2"
 status: Draft
-author: "QA Engineer"
+author: "QA Engineer / PO"
 created: "2026-07-30"
-last_updated: "2026-07-30"
+last_updated: "2026-08-02"
 project_name: "Deerngo Bot"
 project_id: "DERNBOT-001"
 classification: "Internal"
-tags: [regression-test-suite, smoke-test, ci-cd, swebok, iso-29119, vrm, deerngo-bot]
+tags: [regression-test-suite, smoke-test, ci-cd, swebok, members, privacy, easydonate]
 standard_ref:
   - SWEBOK v4 — Testing
   - ISO/IEC/IEEE 29119 — Software Testing
@@ -17,235 +17,151 @@ standard_ref:
 # Regression Test Suite
 
 > **Project:** Deerngo Bot — Viewer Relationship Management (VRM)
-> **Version:** 0.1 | **Status:** Draft
-> **Last Updated:** 2026-07-30
+> **Version:** 0.2 | **Status:** Draft
+> **Last Updated:** 2026-08-02
+>
+> **Scope change:** Active regression is now based on explicit members and TC-M001–TC-M062. Original subscriber/polling cases are historical only.
 
 ---
 
 ## 1. Purpose
 
-Defines reusable regression test suites — smoke tests for CI/CD and full regression for release verification. All test cases reference [[042_test_cases]] for detailed steps.
+Define smoke, core, full, and manual release suites for the member-based Phase 1 MVP. Every active acceptance criterion is mapped to one active test case in `042_test_cases.md`.
 
 ## 2. Suite Structure
 
-| Suite | Purpose | Trigger | Duration | Tests |
-|-------|---------|---------|:--------:|:-----:|
-| **Smoke** | Critical path sanity check | Every PR merge | ~5 min | 12 |
-| **Core Regression** | All 🔴 Must Have ACs | Per sprint release | ~30 min | 31 |
-| **Full Regression** | All ACs (🔴 + 🟡) | Per phase release | ~60 min | 59 |
-| **Manual Checklist** | streamer.bot + UI | Per stream / release | ~20 min | 18 |
+| Suite | Purpose | Trigger | Target |
+|-------|---------|---------|:------:|
+| **Smoke** | Critical member/points/scoreboard sanity | PR/review or deployment | 12 cases |
+| **Core Regression** | All 43 🔴 Must Have criteria | Sprint release | 43 cases |
+| **Full Regression** | All 62 active criteria | Phase release | 62 cases |
+| **Manual Checklist** | streamer.bot, provider, UI, live behavior | Stream/release | Selected manual cases |
 
----
+> Counts refer to test cases, not unique runtime tests. Provider-contract and security gates may block release even if mapped functional tests pass.
 
-## 3. Smoke Test Suite (CI/CD)
+## 3. Smoke Suite
 
-> Runs on every PR merge to `main`. Blocks deploy if any test fails. Target: < 5 minutes.
+### 3.1 Selection
 
-### 3.1 Smoke Test Selection
+| # | Test Case | Why |
+|---|-----------|-----|
+| 1 | TC-M001 | New member creation/zero start |
+| 2 | TC-M002 | Same-handle idempotency |
+| 3 | TC-M003 | Changed-handle old/new state |
+| 4 | TC-M004 | Active-handle conflict |
+| 5 | TC-M013 | Normalization |
+| 6 | TC-M031 | Valid webhook ingestion |
+| 7 | TC-M032 | Duplicate provider reference |
+| 8 | TC-M038 | Exact normalized match |
+| 9 | TC-M041 | Pre-registration cutoff |
+| 10 | TC-M044 | Exactly-once points |
+| 11 | TC-M057 | Scoreboard public projection |
+| 12 | TC-M062 | Public data allowlist |
 
-| # | Test Case | Module | Why In Smoke |
-|---|-----------|--------|-------------|
-| 1 | TC-007 | E-01 | Valid subscriber creation — core CRUD works |
-| 2 | TC-009 | E-01 | Validation rejects bad input — safety net |
-| 3 | TC-003 | E-01 | Upsert works — no duplicate subscribers |
-| 4 | TC-036 | E-03 | Exact name match — core matching logic |
-| 5 | TC-038 | E-03 | Anonymous donation excluded — edge case guard |
-| 6 | TC-042 | E-03 | Points query returns correct total |
-| 7 | TC-044 | E-03 | Non-existent handle returns 0 (not 404) |
-| 8 | TC-032 | E-03 | Idempotent donation sync — no double-count |
-| 9 | TC-052 | E-04 | Scoreboard API returns ranked data |
-| 10 | TC-053 | E-04 | Empty scoreboard returns `[]` (not error) |
-| 11 | TC-057 | Cross | Rate limiting triggers at 101 requests |
-| 12 | TC-045 | E-03 | Only matched donations count toward points |
-
-### 3.2 Smoke Test Execution
+### 3.2 Execution
 
 ```bash
-# Docker Compose — run smoke tests
 docker compose -f docker-compose.test.yml up -d
-go test -tags=smoke -v -timeout=5m ./...
+go test -tags=smoke -race -v -timeout=5m ./...
 docker compose -f docker-compose.test.yml down
 ```
 
-### 3.3 Pass/Fail Criteria
+Any smoke failure blocks the deployment gate.
 
-| Criteria | Rule |
-|----------|------|
-| **Pass** | All 12 smoke tests pass |
-| **Fail** | Any 1 smoke test fails → block PR merge |
-| **Flaky** | 0 flaky tests allowed in smoke suite |
+## 4. Core Regression — Must Have
 
----
+The core suite contains the 43 🔴 active cases. QA should generate the exact command/tag list from the traceability table rather than maintaining a second hand-edited ID list.
 
-## 4. Core Regression Suite (Per Sprint Release)
+**Pass rule:** all 43 🔴 criteria/test cases verified; no open critical defect; provider/security gates resolved or explicitly blocked from release.
 
-> All 🔴 Must Have test cases. Runs before each sprint release.
+## 5. Full Regression — Phase Release
 
-### 4.1 Test Selection
+| Epic | Test Case Range | Count |
+|------|-----------------|:-----:|
+| E-01 Member Registration | TC-M001–TC-M013 | 13 |
+| E-02 Bot Commands | TC-M014–TC-M030 | 17 |
+| E-03 Points Engine | TC-M031–TC-M050 | 20 |
+| E-04 Scoreboard | TC-M051–TC-M062 | 12 |
+| **Total** | **TC-M001–TC-M062** | **62** |
 
-| Epic | Test Cases | Count |
-|------|-----------|:-----:|
-| E-01 Subscriber Capture | TC-001, TC-002, TC-003, TC-004, TC-007, TC-008, TC-009, TC-012, TC-013, TC-014, TC-016, TC-017, TC-018 | 13 |
-| E-02 Bot Commands | TC-019, TC-020, TC-023, TC-024, TC-025, TC-027, TC-028, TC-029 | 8 |
-| E-03 Points Engine | TC-031, TC-032, TC-033, TC-036, TC-037, TC-038, TC-039, TC-042, TC-043, TC-044, TC-045 | 11 |
-| E-04 Scoreboard | — | 0 |
-| Cross-Cutting | TC-057, TC-058 | 2 |
-| **Total** | | **34** |
+### Execution Order
 
-> Note: E-02 Bot Commands includes 5 manual tests (TC-019, TC-020, TC-023, TC-024, TC-025, TC-027, TC-028, TC-029) that cannot run in CI.
+| Order | Module | Reason |
+|:-----:|--------|--------|
+| 1 | E-01 Member Registration | Foundation and identity state |
+| 2 | E-03 Points Engine | Depends on active member data |
+| 3 | E-02 Bot Commands | Depends on member/points APIs |
+| 4 | E-04 Scoreboard | Depends on points and visibility |
+| 5 | Provider/security gates | Prevent production data-integrity/privacy failure |
 
-### 4.2 Automated vs Manual Split
+**Go-live rule:** all active criteria pass or are formally accepted by PO; no 🔴 defect remains open; EasyDonate contract and privacy gates are satisfied.
 
-| Category | Count | Execution |
-|----------|:-----:|-----------|
-| Automated (CI) | 22 | `go test -tags=regression-core` |
-| Manual | 12 | Manual checklist before release |
-| **Total** | **34** | |
+## 6. Manual Checklist
 
-### 4.3 Pass/Fail Criteria
+### 6.1 Streamer.bot
 
-| Criteria | Rule |
-|----------|------|
-| **Pass** | All 34 tests pass (automated + manual) |
-| **Fail** | Any 🔴 test fails → block release |
-| **Known Issues** | Only 🟡 tests with documented DEF-* can be waived |
+- [ ] TC-M005 — typed handle ignored; actual user identity used.
+- [ ] TC-M006 — registration notice wording.
+- [ ] TC-M007 — backend unavailable fallback.
+- [ ] TC-M014/M015 — donate command online/offline behavior.
+- [ ] TC-M020/M021 — private exact band/zero band.
+- [ ] TC-M024–M030 — registration/visibility/point/donate actions and safe logs.
 
----
+### 6.2 Provider/Deployment
 
-## 5. Full Regression Suite (Phase Release)
+- [ ] TC-M031 — verified provider payload reaches webhook.
+- [ ] TC-M037 — invalid path/payload rejected.
+- [ ] TECH-001 / Issue #18 — provider auth/signing contract confirmed.
+- [ ] Tunnel exposes only approved scoreboard/webhook routes.
+- [ ] Secrets/path tokens are absent from logs.
 
-> All test cases (🔴 + 🟡). Runs before Phase 1 go-live.
+### 6.3 UI
 
-### 5.1 Test Selection
+- [ ] TC-M051 — ranked handle/points page.
+- [ ] TC-M054 — empty state.
+- [ ] TC-M056 — error state.
+- [ ] TC-M060/M061 — pagination.
+- [ ] TC-M062 — API allowlist and no display-name/donor fields.
+- [ ] Keyboard/mobile/accessibility checks.
 
-| Module | Tests | Auto | Manual |
-|--------|:-----:|:----:|:------:|
-| E-01 Subscriber Capture | 18 | 14 | 4 |
-| E-02 Bot Commands | 12 | 4 | 8 |
-| E-03 Points Engine | 16 | 14 | 2 |
-| E-04 Scoreboard | 10 | 6 | 4 |
-| Cross-Cutting | 3 | 2 | 1 |
-| **Total** | **59** | **40** | **19** |
+## 7. Test Data Reset
 
-### 5.2 Execution Order
+```sql
+TRUNCATE point_adjustment_notes, donations, members CASCADE;
+```
 
-| Order | Module | Tests | Reason |
-|:-----:|--------|:-----:|--------|
-| 1 | E-01 Subscriber Capture | 18 | Foundation — data must exist before other tests |
-| 2 | E-03 Points Engine | 16 | Depends on subscriber data |
-| 3 | E-02 Bot Commands | 12 | Depends on points data |
-| 4 | E-04 Scoreboard | 10 | Depends on points data |
-| 5 | Cross-Cutting | 3 | Rate limiting + HMAC — independent |
-
-### 5.3 Pass/Fail Criteria
-
-| Criteria | Rule |
-|----------|------|
-| **Go-Live** | All 59 tests pass |
-| **Known Issues** | Max 3 waived 🟡 tests with DEF-* tracking |
-| **Blockers** | Any 🔴 test failure blocks go-live |
-
----
-
-## 6. Manual Test Checklist
-
-> For streamer.bot integration (not automatable) and UI responsive design.
-
-### 6.1 Pre-Stream Checklist (Per Live Stream)
-
-| # | Test Case | Check | ☐ |
-|---|-----------|-------|:-:|
-| 1 | TC-019 | `:deer: donate` → bot responds with link | ☐ |
-| 2 | TC-023 | `:deer: point` → bot shows points | ☐ |
-| 3 | TC-024 | `:deer: point` for new viewer → shows 0 | ☐ |
-| 4 | TC-027 | Donate action triggers correctly | ☐ |
-| 5 | TC-028 | Point action calls API + shows result | ☐ |
-| 6 | TC-030 | Actions logged in streamer.bot | ☐ |
-
-### 6.2 Pre-Release Checklist
-
-| # | Test Case | Check | ☐ |
-|---|-----------|-------|:-:|
-| 1 | TC-005 | Backend down → streamer.bot doesn't crash | ☐ |
-| 2 | TC-020 | Bot offline → no error spam in chat | ☐ |
-| 3 | TC-025 | Backend down → friendly error in chat | ☐ |
-| 4 | TC-026 | API timeout → timeout error after 5s | ☐ |
-| 5 | TC-029 | API 500 → fallback error message | ☐ |
-| 6 | TC-049 | Scoreboard responsive on mobile | ☐ |
-| 7 | TC-059 | HMAC key rotation works | ☐ |
-
----
-
-## 7. Flaky Test Management
-
-| Policy | Rule |
-|--------|------|
-| **Definition** | Test that passes/fails intermittently on same code |
-| **Quarantine** | Move to separate suite, fix within 1 sprint |
-| **Smoke tolerance** | 0 flaky tests in smoke suite |
-| **Regression tolerance** | Max 2 flaky tests (marked with `# flaky` tag) |
-
----
+Use synthetic IDs, handles, amounts, and messages. Never use real client donor details in CI or fixtures.
 
 ## 8. CI/CD Integration
 
-### 8.1 Pipeline Stages
-
 ```yaml
-# GitHub Actions / CI pipeline
 stages:
   - name: unit
-    command: go test -v -race -cover ./...
-    trigger: every push
-
+    command: go test -race -cover ./...
   - name: integration
-    command: go test -tags=integration -v -timeout=10m ./...
-    trigger: every push
-
+    command: go test -tags=integration -timeout=10m ./...
   - name: smoke
-    command: go test -tags=smoke -v -timeout=5m ./...
-    trigger: every PR merge to main
-
-  - name: regression-core
-    command: go test -tags=regression-core -v -timeout=30m ./...
-    trigger: sprint release
-
-  - name: regression-full
-    command: go test -tags=regression-full -v -timeout=60m ./...
-    trigger: phase release
+    command: go test -tags=smoke -timeout=5m ./...
+  - name: full-active-regression
+    command: go test -tags=regression-full -timeout=60m ./...
 ```
 
-### 8.2 Test Tags
-
-| Tag | Purpose | Suite |
-|-----|---------|-------|
-| `smoke` | 12 critical path tests | CI/CD |
-| `regression-core` | 22 automated 🔴 tests | Sprint release |
-| `regression-full` | 40 automated tests | Phase release |
-| `integration` | DB + API tests | Every push |
-| `unit` | Service layer tests | Every push |
-
----
-
-## 9. Test Data Reset
-
-| Action | When | Method |
-|--------|------|--------|
-| Truncate + re-seed | Before each test run | `TRUNCATE subscribers, donations, viewer_points CASCADE;` + seed SQL |
-| Fresh Docker Compose | Before CI run | `docker compose down -v && docker compose up -d` |
-| Mock reset | Before each test | YouTube + EasyDonate mocks return to default state |
-
----
+Provider test events and live streamer.bot tests remain manual and are not simulated with production credentials in CI.
 
 ## Related Documents
 
 | Document | Relationship |
 |----------|-------------|
-| [[041_test_plan]] | Test strategy governing these suites |
-| [[042_test_cases]] | Detailed test cases referenced by suite |
-| [[043_defect_report]] | Waived tests tracked here |
+| [[041_test_plan]] | Test strategy |
+| [[042_test_cases]] | Detailed active cases |
+| [[043_defect_report]] | Active blockers/gaps |
+| [[045_coverage_report]] | Coverage summary |
+| [[061_security_test_report]] | Security release gates |
+| `https://github.com/oat431/deerngo-bot/issues/18` | Provider contract gate |
+| `https://github.com/oat431/deerngo-bot/issues/19` | Manual correction procedure |
 
 ---
 
-> **Template Standard:** Based on SWEBOK v4, ISO/IEC/IEEE 29119
-> **Usage:** Regression suites are the *gate* for releases. If the suite doesn't pass, the release doesn't ship.
+> **Template Standard:** Based on SWEBOK v4 and ISO/IEC/IEEE 29119
+> **Usage:** Release gate for the revised member-based MVP. Historical subscriber tests do not satisfy active coverage.
+---

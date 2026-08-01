@@ -1,15 +1,15 @@
 ---
 document_type: API Specification
-version: "0.1"
+version: "0.2"
 status: Draft
-author: "SA / Designer Persona"
+author: "PO / SA"
 created: "2026-07-29"
-last_updated: "2026-07-29"
+last_updated: "2026-08-02"
 project_name: "Deerngo Bot"
 project_id: "DERNBOT-001"
-tech_lead: "SA / Designer Persona"
+tech_lead: "SA / Dev"
 classification: "Internal"
-tags: [api-specification, openapi, rest, swebok, vrm, fiber]
+tags: [api-specification, openapi, rest, members, vrm, fiber, easydonate, privacy]
 standard_ref:
   - SWEBOK v4 — Design
   - OpenAPI Specification 3.0
@@ -19,62 +19,57 @@ parent_project: "Deerngo Bot — VRM"
 # API Specification
 
 > **Project:** Deerngo Bot — Viewer Relationship Management (VRM)
-> **Version:** 0.1 | **Status:** Draft
-> **Last Updated:** 2026-07-29
-
----
-
-## Document Control
-
-| Field | Value |
-|-------|-------|
-| Document Owner | SA / Designer Persona |
-| Framework | Fiber v3 (fasthttp-based) |
-| Database Access | sqlx |
-
-### Revision History
-
-| Version | Date | Author | Change Description |
-|---------|------|--------|--------------------|
-| 0.1 | 2026-07-29 | SA | Initial API spec — 4 public endpoints + 1 webhook + internal schedulers |
+> **Version:** 0.2 | **Status:** Draft
+> **Last Updated:** 2026-08-02
+>
+> **Scope change:** The YouTube subscriber-polling API and OAuth flow are removed from the active Phase 1 MVP. Members are created explicitly from streamer.bot live-chat identity.
 
 ---
 
 ## 1. Purpose
 
-> This document defines the API contracts for the Deerngo Bot Go backend. It serves as the contract between the streamer.bot integration, the EasyDonate webhook, and the React/Next.js frontend.
-
----
+This document defines the Go backend API contract for member registration, visibility controls, points queries, EasyDonate ingestion, and the public scoreboard.
 
 ## 2. API Overview
 
 | Field | Detail |
 |-------|--------|
-| Base URL | `http://192.168.1.121:8008` (LAN — streamer.bot connects here) |
-| Docker Internal | `http://deerngo-bot:8008` (Next.js connects here via `db-network`) |
-| Public URL | Via Cloudflare Tunnel (e.g., `https://deerngo-viewer-score.panomete.com`) — scoreboard only |
-| Protocol | HTTP (internal), HTTPS (public via Cloudflare) |
+| LAN Base URL | `http://192.168.1.121:8008` — streamer.bot calls this address |
+| Docker Internal URL | `http://deerngo-bot:8008` — frontend-to-backend communication |
+| Public URL | Cloudflare Tunnel — scoreboard and configured EasyDonate webhook route only |
+| Protocol | HTTP internally; HTTPS through Cloudflare |
 | Format | JSON |
-| Authentication | None for Phase 1 (all endpoints are internal or public read-only) |
-| Rate Limiting | 100 requests/minute per IP (Fiber middleware) |
-| Versioning | URL path — `/api/v1/` |
+| Authentication | No general auth in Phase 1; streamer.bot identity is supplied by the integration |
+| Versioning | `/api/v1/` |
+| Default Rate Limit | 100 requests/minute per IP |
+| Webhook Rate Limit | 200 requests/minute if provider traffic requires a separate tier |
 
----
+## 3. Data and Identity Rules
 
-## 3. Common Response Formats
+- `youtube_user_id` comes from streamer.bot's actual chat author identity. Never trust a handle typed in the chat message.
+- `youtube_handle` is normalized before storage and matching: trim whitespace, remove one leading `@`, lowercase.
+- `members.member_id` is the primary key.
+- Only one active member may exist for a YouTube user ID.
+- Only one active member may own a normalized handle.
+- Re-registering with the same active identity is idempotent.
+- Registering a changed handle deactivates the old member and creates a new active member with 0 points.
+- No YouTube display name is stored or returned.
+- `public_visibility` defaults to `true`; private members remain eligible for points but are excluded from public responses.
 
-### Success Response
+## 4. Common Response Formats
+
+### Success
 
 ```json
 {
-  "data": { ... },
+  "data": { "...": "..." },
   "meta": {
-    "timestamp": "2026-07-29T10:00:00Z"
+    "timestamp": "2026-08-02T10:00:00Z"
   }
 }
 ```
 
-### Error Response
+### Error
 
 ```json
 {
@@ -90,210 +85,250 @@ parent_project: "Deerngo Bot — VRM"
 
 ### Error Codes
 
-| Code | HTTP Status | Description |
-|------|-----------|-------------|
-| VALIDATION_ERROR | 400 | Input validation failed |
-| NOT_FOUND | 404 | Resource not found |
-| CONFLICT | 409 | Resource already exists (upsert returns 200 instead) |
-| RATE_LIMITED | 429 | Too many requests |
-| INTERNAL_ERROR | 500 | Server error |
-| WEBHOOK_INVALID | 401 | Webhook signature verification failed |
+| Code | HTTP | Meaning |
+|------|-----:|---------|
+| `VALIDATION_ERROR` | 400 | Invalid or missing input |
+| `MEMBER_NOT_REGISTERED` | 404 | No active member for the supplied identity |
+| `HANDLE_IN_USE` | 409 | Handle belongs to another active user |
+| `CONFLICT` | 409 | State conflict |
+| `RATE_LIMITED` | 429 | Too many requests |
+| `WEBHOOK_INVALID` | 401/403 | Invalid path token or provider-confirmed auth failure |
+| `INTERNAL_ERROR` | 500 | Unexpected backend error |
 
 ---
 
-## 4. API Endpoints
+## 5. API Endpoints
 
-### 4.1 POST /api/v1/subscribers — Register Subscriber
+### 5.1 POST `/api/v1/members/register` — Register a Viewer
 
-> Called by streamer.bot when a new YouTube subscriber event fires during a live stream.
+Called by streamer.bot for `:deer: register`.
 
 | Field | Detail |
 |-------|--------|
-| Description | Create or update a subscriber record (upsert by youtube_handle) |
-| Auth | None (internal endpoint, localhost only) |
+| Auth | Internal LAN integration; no typed handle trusted |
+| Called By | streamer.bot HTTP Request action |
 | Rate Limit | 100/min |
-| Called By | streamer.bot (HTTP Request sub-action) |
 
-**Request Body:**
+**Request**
 
 ```json
 {
-  "youtube_handle": "@viewer1",
-  "display_name": "Viewer One",
-  "subscribed_at": "2026-07-29T10:00:00Z",
-  "source": "streamer_bot"
+  "youtube_user_id": "UC-viewer-123",
+  "youtube_handle": "@Viewer123"
 }
 ```
 
-**Validation Rules:**
+**Validation**
 
-| Field | Rule | Error |
-|-------|------|-------|
-| youtube_handle | Required, string, 1–100 chars | VALIDATION_ERROR |
-| display_name | Required, string, 1–255 chars | VALIDATION_ERROR |
-| subscribed_at | Required, ISO 8601 timestamp | VALIDATION_ERROR |
-| source | Required, must be "streamer_bot" | VALIDATION_ERROR |
+| Field | Rule |
+|-------|------|
+| `youtube_user_id` | Required, non-empty, provider user/channel identifier |
+| `youtube_handle` | Required, 1–100 characters before normalization |
+| display name | Not accepted and not stored |
+| command text handle | Ignored; only streamer.bot identity is accepted |
 
-**Response — New Subscriber (201):**
+**Response — New Member (201)**
 
 ```json
 {
   "data": {
-    "id": "uuid",
-    "youtube_handle": "@viewer1",
-    "display_name": "Viewer One",
-    "subscribed_at": "2026-07-29T10:00:00Z",
-    "source": "streamer_bot",
-    "created_at": "2026-07-29T10:00:01Z",
-    "updated_at": "2026-07-29T10:00:01Z"
-  }
-}
-```
-
-**Response — Existing Subscriber Upserted (200):**
-
-```json
-{
-  "data": {
-    "id": "uuid",
-    "youtube_handle": "@viewer1",
-    "display_name": "Viewer One",
-    "subscribed_at": "2026-07-28T08:00:00Z",
-    "source": "youtube_api",
-    "created_at": "2026-07-28T08:00:01Z",
-    "updated_at": "2026-07-29T10:00:01Z"
+    "member_id": "uuid",
+    "youtube_user_id": "UC-viewer-123",
+    "youtube_handle": "viewer123",
+    "status": "active",
+    "public_visibility": true,
+    "total_points": 0,
+    "registered_at": "2026-08-02T10:00:00Z"
   },
   "meta": {
-    "upserted": true,
-    "message": "Existing record preserved (earliest timestamp kept)"
+    "created": true
   }
 }
 ```
 
-**Error — Validation (400):**
-
-```json
-{
-  "error": {
-    "code": "VALIDATION_ERROR",
-    "message": "youtube_handle is required",
-    "details": [
-      { "field": "youtube_handle", "message": "This field is required" }
-    ]
-  }
-}
-```
-
-**Upsert Logic:**
-1. Normalize `youtube_handle`: lowercase, strip `@`, trim whitespace
-2. `INSERT ... ON CONFLICT (youtube_handle) DO UPDATE`
-3. On update: preserve the **earliest** `subscribed_at`, update `display_name` and `source`
-4. Return 201 for new, 200 for upsert
-
----
-
-### 4.2 GET /api/v1/points/{handle} — Query Viewer Points
-
-> Called by streamer.bot when a viewer types `:deer: point` in chat.
-
-| Field | Detail |
-|-------|--------|
-| Description | Get a viewer's point balance by YouTube handle |
-| Auth | None (internal endpoint, localhost only) |
-| Rate Limit | 100/min |
-| Called By | streamer.bot (HTTP Request sub-action) |
-
-**Path Parameters:**
-
-| Param | Type | Description |
-|-------|------|-------------|
-| handle | string | YouTube handle (without @) |
-
-**Response — Viewer Has Points (200):**
+**Response — Same Active Member (200)**
 
 ```json
 {
   "data": {
-    "youtube_handle": "@viewer1",
-    "display_name": "Viewer One",
-    "total_points": 500.00,
-    "donation_count": 3,
-    "last_donation": "2026-07-29T09:30:00Z"
+    "member_id": "uuid",
+    "youtube_user_id": "UC-viewer-123",
+    "youtube_handle": "viewer123",
+    "status": "active",
+    "public_visibility": true,
+    "total_points": 563
+  },
+  "meta": {
+    "already_registered": true
   }
 }
 ```
 
-**Response — Viewer Has No Points (200):**
+**Response — Changed Handle (201)**
 
-```json
-{
-  "data": {
-    "youtube_handle": "@newviewer",
-    "display_name": "New Viewer",
-    "total_points": 0,
-    "donation_count": 0,
-    "last_donation": null
-  }
-}
-```
+The backend must perform this transaction:
 
-> **Note:** Always returns 200, never 404. A viewer with no points gets `total_points: 0`. The handle is normalized (lowercase, strip @) before lookup.
+1. Mark the old active member for the same `youtube_user_id` as `inactive`.
+2. Preserve the old member's points.
+3. Create a new active member with the new normalized handle and 0 points.
+4. Do not transfer points automatically.
 
-**Error — Internal (500):**
+**Response — Active Handle Conflict (409)**
 
 ```json
 {
   "error": {
-    "code": "INTERNAL_ERROR",
-    "message": "Failed to query points"
+    "code": "HANDLE_IN_USE",
+    "message": "This handle is already registered by another active member"
   }
 }
 ```
 
+**Response — Backend Unavailable**
+
+streamer.bot maps network/API failure to:
+
+```text
+🦌 Registration is temporarily unavailable. Please try again later.
+```
+
 ---
 
-### 4.3 GET /api/v1/scoreboard — Public Scoreboard
+### 5.2 PUT `/api/v1/members/{youtube_user_id}/visibility` — Change Visibility
 
-> Called by the React/Next.js frontend to display the ranked scoreboard.
+Called by `:deer: public` and `:deer: private`.
 
-| Field | Detail |
-|-------|--------|
-| Description | Get ranked list of viewers by points (descending) |
-| Auth | None (public read-only endpoint) |
-| Rate Limit | 100/min |
-| Called By | React frontend, public browsers |
+**Request**
 
-**Query Parameters:**
+```json
+{
+  "public_visibility": false
+}
+```
 
-| Param | Type | Default | Description |
-|-------|------|---------|-------------|
-| page | integer | 1 | Page number (1-based) |
-| limit | integer | 50 | Items per page (max 100) |
+**Response (200)**
 
-**Response — Scoreboard (200):**
+```json
+{
+  "data": {
+    "youtube_user_id": "UC-viewer-123",
+    "public_visibility": false
+  }
+}
+```
 
-> **Note:** Only viewers with `total_points > 0` are included. Viewers who haven't donated are excluded from the scoreboard.
+Rules:
+
+- No member creation.
+- No point changes.
+- No handle changes.
+- If no active member exists, return `MEMBER_NOT_REGISTERED`.
+
+---
+
+### 5.3 GET `/api/v1/members/{youtube_user_id}/points` — Visibility-Aware Points
+
+Called by streamer.bot for `:deer: point` using the actual chat author identity.
+
+**Public Member with Exact Points**
+
+```json
+{
+  "data": {
+    "youtube_handle": "viewer123",
+    "public_visibility": true,
+    "point_display": "exact",
+    "total_points": 563
+  }
+}
+```
+
+**Private Member with Banded Points**
+
+```json
+{
+  "data": {
+    "youtube_handle": "viewer123",
+    "public_visibility": false,
+    "point_display": "range",
+    "lower": 500,
+    "upper": 600
+  }
+}
+```
+
+Banded calculation:
+
+```text
+lower = floor(total_points / 100) * 100
+upper = lower + 100
+```
+
+Examples:
+
+```text
+563  → 500–600
+600  → 600–700
+1249 → 1200–1300
+0    → 0–100
+```
+
+**Unregistered Member**
+
+```json
+{
+  "error": {
+    "code": "MEMBER_NOT_REGISTERED",
+    "message": "Viewer is not registered"
+  }
+}
+```
+
+streamer.bot maps this to:
+
+```text
+🦌 You are not registered yet. Use :deer: register first.
+```
+
+---
+
+### 5.4 GET `/api/v1/scoreboard` — Public Scoreboard
+
+Public read-only endpoint consumed by `deerngo-web`.
+
+**Query Parameters**
+
+| Parameter | Type | Default | Rule |
+|-----------|------|---------|------|
+| `page` | integer | 1 | 1-based; must be >= 1 |
+| `limit` | integer | 50 | 1–100; behavior above 100 must be documented by Dev |
+
+Only records satisfying all conditions are returned:
+
+```sql
+status = 'active'
+AND public_visibility = true
+AND total_points > 0
+```
+
+**Response (200)**
 
 ```json
 {
   "data": [
     {
       "rank": 1,
-      "display_name": "Top Donor",
-      "youtube_handle": "@topdonor",
-      "total_points": 1500.00,
-      "donation_count": 10
+      "youtube_handle": "topdonor",
+      "total_points": 1500
     },
     {
       "rank": 2,
-      "display_name": "Viewer One",
-      "youtube_handle": "@viewer1",
-      "total_points": 500.00,
-      "donation_count": 3
+      "youtube_handle": "viewer123",
+      "total_points": 563
     }
   ],
   "meta": {
-    "total": 25,
+    "total": 2,
     "page": 1,
     "limit": 50,
     "pages": 1,
@@ -303,190 +338,130 @@ parent_project: "Deerngo Bot — VRM"
 }
 ```
 
-**Response — Empty Scoreboard (200):**
+The response must never contain:
 
-> No viewers have donated yet (or all viewers have 0 points).
-
-```json
-{
-  "data": [],
-  "meta": {
-    "total": 0,
-    "page": 1,
-    "limit": 50,
-    "pages": 0,
-    "hasNext": false,
-    "hasPrev": false
-  }
-}
-```
+- YouTube display name
+- `youtube_user_id`
+- Raw EasyDonate donor name
+- Donation message
+- Private member record
+- Inactive member record
+- Zero-point member record
 
 ---
 
-### 4.4 POST /api/v1/webhooks/easydonate — EasyDonate Webhook
+### 5.5 POST `/api/v1/webhooks/easydonate/{path_token}` — EasyDonate Webhook
 
-> Receives donation events from EasyDonate. Verifies HMAC-SHA256 signature before processing.
+> EasyDonate's current public documentation confirms webhook URL configuration and payload examples, but does not confirm HMAC signing or an `X-EasyDonate-Signature` header. Do not implement HMAC unless the dashboard/provider contract confirms it.
 
-| Field | Detail |
-|-------|--------|
-| Description | Receive and process donation webhook events |
-| Auth | HMAC-SHA256 signature verification |
-| Rate Limit | 100/min |
-| Called By | EasyDonate webhook system |
+**MVP Protection**
 
-**Request Headers:**
+- `{path_token}` is a long random secret path segment stored only in deployment configuration.
+- Strict JSON and amount/currency/time validation.
+- Request body size limit.
+- Rate limiting.
+- `referenceNo` unique idempotency key.
+- Raw donor data remains private.
 
-| Header | Description |
-|--------|-------------|
-| X-EasyDonate-Signature | HMAC-SHA256 signature of the request body |
-| Content-Type | application/json |
-
-**Request Body:**
+**Expected Provider Payload**
 
 ```json
 {
-  "id": "ed-12345",
-  "donor_name": "viewer1",
-  "amount": 100.00,
-  "currency": "THB",
-  "message": "Keep streaming!",
-  "created_at": "2026-07-29T10:00:00Z"
+  "referenceNo": "EZDN-ABC123456",
+  "channelName": "TRUEWALLET_ANGPAO",
+  "donatorName": "Viewer123",
+  "donateMessage": "Keep streaming!",
+  "amount": 1000,
+  "time": "2024-01-15T10:30:00.000Z"
 }
 ```
 
-**Response — Processed (200):**
+The actual payload must be verified against a real EasyDonate dashboard/test event before production acceptance.
+
+**Response — Accepted (200)**
 
 ```json
 {
   "data": {
-    "id": "uuid",
-    "easydonate_id": "ed-12345",
-    "donor_name": "viewer1",
-    "amount_thb": 100.00,
-    "match_status": "pending",
+    "reference_no": "EZDN-ABC123456",
+    "stored": true,
     "source": "webhook"
   }
 }
 ```
 
-**Error — Invalid Signature (401):**
-
-```json
-{
-  "error": {
-    "code": "WEBHOOK_INVALID",
-    "message": "Invalid webhook signature"
-  }
-}
-```
-
-**Error — Duplicate (200 with skip):**
+**Response — Duplicate (200)**
 
 ```json
 {
   "data": {
-    "easydonate_id": "ed-12345",
+    "reference_no": "EZDN-ABC123456",
+    "stored": false,
     "skipped": true,
     "reason": "Donation already processed"
   }
 }
 ```
 
-**Webhook Verification Flow:**
-1. Read raw request body
-2. Compute `HMAC-SHA256(body, secret_key)` where `secret_key` is from environment variable
-3. Compare with `X-EasyDonate-Signature` header (constant-time comparison)
-4. If mismatch → 401
-5. If match → parse JSON, check `easydonate_id` uniqueness, store donation
+**Processing Rules**
+
+1. Validate path token and request body.
+2. Validate `amount > 0`, expected currency, and timestamp format.
+3. Insert by unique `referenceNo`; reject/skip duplicates.
+4. Store raw donor name privately for exact matching and reconciliation.
+5. Do not award points in the ingestion handler unless the matching/cutoff transaction succeeds.
 
 ---
 
-### 4.5 Internal: EasyDonate Sync (Polling Fallback)
-
-> Background goroutine that polls EasyDonate REST API every 5 minutes as a fallback for missed webhooks.
+### 5.6 Internal EasyDonate API Sync — Fallback
 
 | Field | Detail |
 |-------|--------|
-| Description | Poll EasyDonate API for recent donations not yet in the database |
-| Schedule | Every 5 minutes |
-| Auth | OAuth 2.0 (token from `oauth_tokens` table) |
-| Endpoint | `GET https://easydonate.app/api/v1/shop/deerngo0/donations` |
+| Schedule | Every 5 minutes, configurable |
+| Auth | Personal EasyDonate API key as `Authorization: Bearer <key>` |
+| Scope | Provider-confirmed donation-read scope, currently documented as `read:donations` |
+| Endpoint | Provider API donation-list endpoint; confirm base URL and query parameters from current OpenAPI reference |
+| Source | `api_poll` |
+| Idempotency | `referenceNo` |
 
-**Sync Logic:**
-1. Fetch last 50 donations from EasyDonate API
-2. For each donation, check if `easydonate_id` exists in `donations` table
-3. If not exists → insert with `source = 'api_poll'`, `match_status = 'pending'`
-4. If exists → skip (idempotent)
-5. On 429 (rate limit) → back off, respect `Retry-After` header
+The API key is backend-only and must never appear in browser code or logs.
 
 ---
 
-### 4.6 Internal: YouTube API Polling Scheduler
+### 5.7 Internal Exact Matching and Points Application
 
-> Background goroutine that polls YouTube Data API every 15 minutes for new subscribers.
+The matching worker processes pending donations:
 
-| Field | Detail |
-|-------|--------|
-| Description | Poll YouTube Data API for new subscribers |
-| Schedule | Every 15 minutes |
-| Auth | OAuth 2.0 (token from `oauth_tokens` table) |
-| Endpoint | `GET https://www.googleapis.com/youtube/v3/subscriptions` |
-| Quota | 1 unit per call × 96 calls/day = 96 units (well within 10,000/day limit) |
+1. Normalize `donatorName`: trim, remove leading `@`, lowercase.
+2. Find an **active** member with exactly matching normalized `youtube_handle`.
+3. Require `donation_time >= member.registered_at`.
+4. If no match or cutoff fails, mark the donation uncredited and retain it privately.
+5. If eligible, update `donations.matched_member_id` and apply `amount_thb` once to `members.total_points`.
+6. Use a transaction/conditional update to prevent duplicate point application.
 
-**Polling Logic:**
-1. Call `GET /youtube/v3/subscriptions?part=snippet&channelId={channel_id}&maxResults=50&order=date`
-2. For each subscriber, normalize handle (lowercase, strip @)
-3. `INSERT ... ON CONFLICT (youtube_handle) DO UPDATE` — preserve earliest `subscribed_at`
-4. On 403 (quota exceeded) → log error, skip next cycle
-5. On 401 (token expired) → log error, alert operator (manual re-auth required)
+Fuzzy matching and `pg_trgm` are not used for Phase 1 member points.
 
 ---
 
-### 4.7 Internal: Name Matching Engine
+## 6. Security and Privacy Contract
 
-> Background goroutine that processes `pending` donations and matches them to subscribers.
+- No display name storage for members.
+- Raw donor names and messages are private operational data.
+- Public scoreboard returns normalized handle and points only.
+- `:deer: private` hides a member while preserving private points.
+- Do not assume HMAC until EasyDonate confirms it.
+- Use an unpredictable webhook path token until a provider-supported authentication mechanism is verified.
+- Never log API keys, path tokens, client secrets, refresh tokens, donor messages, or full provider payloads.
 
-| Field | Detail |
-|-------|--------|
-| Description | Match pending donations to subscribers via fuzzy name matching |
-| Schedule | Every 2 minutes (after donation sync) |
-| Algorithm | PostgreSQL `pg_trgm` `similarity()` function |
+## 7. Superseded API Contracts
 
-**Matching Logic:**
-1. `SELECT * FROM donations WHERE match_status = 'pending'`
-2. For each donation:
-   a. Normalize `donor_name`: lowercase, strip `@`, trim whitespace
-   b. Skip if `donor_name` is 'anonymous' or empty → set `match_status = 'unmatched'`
-   c. Query: `SELECT youtube_handle, similarity(youtube_handle, $1) AS score FROM subscribers WHERE similarity(youtube_handle, $1) > 0.7 ORDER BY score DESC LIMIT 2`
-   d. If exactly 1 match with score > 0.7 → set `match_status = 'matched'`, `matched_handle`, `match_score`
-   e. If multiple matches with score > 0.7 → set `match_status = 'manual_review'`, store best match and score
-   f. If no match > 0.7 → set `match_status = 'unmatched'`
-3. Update donation record
-4. Trigger fires → `viewer_points` updated automatically
-
----
-
-## 5. Rate Limiting
-
-| Tier | Limit | Window | Response |
-|------|-------|--------|---------|
-| Default | 100 requests | 1 minute | 429 when exceeded |
-| Webhook | 200 requests | 1 minute | 429 when exceeded |
-
-> Implemented via Fiber's `limiter` middleware. Per-IP tracking.
-
----
-
-## 6. Deployment Notes
-
-| Aspect | Detail |
-|--------|--------|
-| Container | Docker, joins `db-network` on homelab |
-| Port | `:8008` (configurable via `PORT` env var) |
-| LAN Access | `http://192.168.1.121:8008` (streamer.bot on Windows PC connects here) |
-| Docker Internal | `http://deerngo-bot:8008` (Next.js frontend connects here) |
-| Public Access | Via Cloudflare Tunnel — only scoreboard endpoint exposed publicly |
-| CORS | Allow origin from scoreboard frontend URL (Cloudflare hostname) |
+| Former Contract | Status | Replacement |
+|-----------------|--------|-------------|
+| `POST /api/v1/subscribers` | Superseded | `POST /api/v1/members/register` |
+| `GET /api/v1/points/{handle}` | Superseded | `GET /api/v1/members/{youtube_user_id}/points` |
+| YouTube API polling | Removed from MVP | streamer.bot explicit registration |
+| Fuzzy `pg_trgm` matching | Removed from MVP | normalized exact active-member match |
+| HMAC webhook assumption | Unverified/superseded | provider-confirmed auth or secret path MVP fallback |
 
 ---
 
@@ -494,13 +469,14 @@ parent_project: "Deerngo Bot — VRM"
 
 | Document | Relationship |
 |----------|-------------|
-| [[023_database_schema_DDL]] | Database tables these endpoints read/write |
-| [[024_ERD]] | Data model underlying the API |
-| [[021_architecture_decision_records]] | ADR-009 (Fiber), ADR-012 (HMAC-SHA256) |
-| [[012_user_stories]] | User stories these endpoints implement |
-| [[013_acceptance_criteria]] | ACs that verify endpoint behavior |
+| [[012_user_stories]] | Current user stories |
+| [[013_acceptance_criteria]] | Current acceptance criteria |
+| [[023_database_schema_DDL]] | Current physical data model |
+| [[024_ERD]] | Current logical data model |
+| [[021_architecture_decision_records]] | Decision rationale |
+| [[072_MM06_dev-to-po-qa-youtube-subscriber-limit_20260801]] | Approved scope change |
 
 ---
 
-> **Template Standard:** Based on SWEBOK v4, OpenAPI Specification 3.0
-> **Usage:** This is the *contract* between streamer.bot, EasyDonate, and the frontend. Both sides code against this spec. Generate OpenAPI YAML from this document for tooling integration.
+> **Template Standard:** Based on SWEBOK v4 and OpenAPI Specification 3.0
+> **Usage:** This is the current contract between streamer.bot, EasyDonate, the backend, and the frontend.
