@@ -1,6 +1,6 @@
 ---
 document_type: Risk Register
-version: "0.2"
+version: "0.3"
 status: Active
 author: "PO"
 created: "2026-07-30"
@@ -18,7 +18,7 @@ standard_ref:
 # Risk Register
 
 > **Project:** Deerngo Bot — Viewer Relationship Management (VRM)
-> **Version:** 0.2 | **Status:** Active
+> **Version:** 0.3 | **Status:** Active
 > **Last Updated:** 2026-08-02
 >
 > **Scope change:** YouTube subscriber polling and automatic subscriber collection were removed from the active Phase 1 MVP. Risks below reflect explicit member registration and member-based points.
@@ -40,7 +40,7 @@ Living document for tracking all identified risks throughout the Deerngo Bot pro
 | R-003 | Technical | Donor name does not match registered member handle | 4 — Likely | 3 — Moderate | 12 | 🟠 High | Mitigate | Channel owner publishes exact naming rule; normalize harmless formatting only; retain unmatched records privately without awarding points. | Owner/Dev | High unmatched-donation rate | ⬜ Open | Ongoing | 2026-08-02 |
 | R-004 | Data Integrity | Same normalized handle is claimed by different active YouTube user IDs | 2 — Unlikely | 4 — Major | 8 | 🟡 Medium | Mitigate | Partial unique index for active handles; reject conflicting registration; owner resolves manually. | Dev | Registration returns HANDLE_IN_USE | ⬜ Open | Sprint 1 | 2026-08-02 |
 | R-005 | Data Integrity | Re-registration creates separate old/new records and points require manual transfer | 3 — Possible | 4 — Major | 12 | 🟠 High | Mitigate | Old record becomes inactive; points remain; new record starts at 0; use transaction and point-adjustment note for manual correction. | Dev/Owner | Handle-change registration | ⬜ Open | Sprint 1 | 2026-08-02 |
-| R-006 | Privacy / PDPA | Public handle and score may identify a natural person or reveal donation participation | 3 — Possible | 4 — Major | 12 | 🟠 High | Mitigate | Do not store display names; registration notice; `:deer: private`; exclude private/inactive/zero-point records; define correction/removal route; owner obtains legal review. | Owner/PO/Dev | Member asks to hide/remove data | ⬜ Open | Before scoreboard release | 2026-08-02 |
+| R-006 | Privacy / PDPA | Public handle and score may identify a natural person or reveal donation participation | 3 — Possible | 4 — Major | 12 | 🟠 High | Mitigate | Apply the owner checklist: privacy notice, purpose/lawful-basis decision, optional public-display decision, retention/deletion, rights/removal route, controller/processor instructions, breach process, and Thai legal review where needed. | Owner/PO/Dev | Member asks to hide/remove data or owner checklist incomplete | ⬜ Open | Before scoreboard release | 2026-08-02 |
 | R-007 | Availability | streamer.bot offline prevents registration and chat responses | 3 — Possible | 3 — Moderate | 9 | 🟡 Medium | Accept/Mitigate | No false success; viewer retries next live stream; backend errors return friendly retry message when streamer.bot is online. | Dev/Owner | No chat events received | ⬜ Open | Ongoing | 2026-08-02 |
 | R-008 | Data Integrity | Manual database point correction introduces an incorrect total | 3 — Possible | 4 — Major | 12 | 🟠 High | Mitigate | Transactional correction procedure; backup; record before/after/reason in `point_adjustment_notes`; admin console later. | Owner/DevOps | Point mismatch or transfer request | ⬜ Open | Ongoing | 2026-08-02 |
 | R-009 | Infrastructure | Cloudflare Tunnel downtime affects scoreboard/webhook reachability | 2 — Unlikely | 2 — Minor | 4 | 🟢 Low | Accept | Monitor tunnel; API fallback reconciles missed donations; accept short read-only outage. | DevOps | Tunnel offline >5 min | ⬜ Open | Ongoing | 2026-08-02 |

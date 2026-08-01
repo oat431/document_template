@@ -1,6 +1,6 @@
 ---
 document_type: Security Test Report
-version: "0.2"
+version: "0.3"
 status: Draft
 author: "QA Engineer / PO"
 created: "2026-07-30"
@@ -19,7 +19,7 @@ standard_ref:
 # Security Test Report
 
 > **Project:** Deerngo Bot — Viewer Relationship Management (VRM)
-> **Version:** 0.2 | **Status:** Draft
+> **Version:** 0.3 | **Status:** Draft
 > **Last Updated:** 2026-08-02
 >
 > **Scope change:** This pre-code security assessment covers explicit member registration, private donation ingestion, exact point attribution, visibility, and the privacy-safe public scoreboard. The former subscriber/OAuth/poller path is not active MVP scope.
@@ -210,9 +210,21 @@ EasyDonate provider → webhook/API ──────────────�
 | 9 | Run dependency/container security scans | 🔴 | Dev/DevOps | ⬜ |
 | 10 | Add internal API authentication in Phase 2 | 🟢 | Dev | Deferred |
 
-## 8. Compliance and Privacy Note
+## 8. Thai PDPA Owner Readiness Gate
 
-A public YouTube handle and contribution score may be personal data under Thai PDPA depending on context. This document is not legal advice. Before public release, the channel owner should confirm controller/processor responsibilities, purpose/notice, retention, visibility/opt-out/removal, and any required legal basis with qualified Thai privacy counsel.
+A public YouTube handle, donor name, donation event, and contribution score may be personal data under Thai PDPA depending on context. Public visibility is a separate disclosure purpose; public availability is not a blanket exemption. This document is not legal advice or a compliance certification.
+
+Before public release, the channel owner must review `06_security/063_thai_pdpa_owner_checklist.md` and confirm:
+
+- [ ] Controller/contact and developer/host processing roles are documented.
+- [ ] Separate purposes and lawful-basis decisions are recorded for registration, matching, points, publication, logs, and backups.
+- [ ] Privacy notice is approved and accessible.
+- [ ] Public-display choice, `:deer: private`, correction, access, removal/erasure, and external contact routes are usable.
+- [ ] Retention/deletion rules cover members, donor data, logs, caches, exports, and backups.
+- [ ] Developer/host instructions, no-reuse rule, security, subprocessors, incident escalation, and deletion obligations are recorded.
+- [ ] Breach escalation and Thai counsel review (where needed) are complete.
+
+The scoreboard release gate remains blocked until the owner completes this review.
 
 ## Related Documents
 
@@ -224,6 +236,7 @@ A public YouTube handle and contribution score may be personal data under Thai P
 | [[041_test_plan]] | Active testing plan |
 | [[071_risk_register]] | Runtime risk register |
 | [[062_coding_standards_security]] | Secure implementation rules |
+| [[063_thai_pdpa_owner_checklist]] | Owner privacy-readiness checklist |
 | `https://github.com/oat431/deerngo-bot/issues/18` | EasyDonate contract gate |
 | `https://github.com/oat431/deerngo-bot/issues/19` | Manual point-correction procedure |
 

@@ -1,6 +1,6 @@
 ---
 document_type: Business Objectives
-version: "0.2"
+version: "0.3"
 status: Draft
 author: "PO"
 created: "2026-07-29"
@@ -20,7 +20,7 @@ standard_ref:
 # Business Objectives
 
 > **Project:** Deerngo Bot — Viewer Relationship Management (VRM)
-> **Version:** 0.2 | **Status:** Draft
+> **Version:** 0.3 | **Status:** Draft
 > **Last Updated:** 2026-08-02
 >
 > **Scope change:** The former YouTube subscriber-polling approach was removed after live verification showed that the API exposes only a limited subscriber subset. Phase 1 now uses explicit viewer membership through `:deer: register`.
@@ -264,7 +264,7 @@ flowchart LR
 | OR-01 | OBJ-03 | EasyDonate API rate limit or provider contract change | Medium | Medium | 🟡 | 60 req/min limit; backoff; verify current payload and scopes | Dev |
 | OR-02 | OBJ-03 | Donor name does not match member handle | High | Medium | 🟡 | Publish naming rule; exact normalized match; retain unmatched privately | Owner/Dev |
 | OR-03 | OBJ-03 | Wrong member receives points due handle conflict | Low | High | 🟠 | Active-handle uniqueness; reject conflicting registration | Dev |
-| OR-04 | OBJ-04 | Public handle/score is personal data or member wants removal | Medium | High | 🟠 | Clear registration notice; `:deer: private`; exclude private/inactive records | Owner/Dev |
+| OR-04 | OBJ-04 | Public handle/score is personal data or member wants removal | Medium | High | 🟠 | Apply the Thai PDPA owner checklist: notice, purpose/lawful-basis decision, optional public-display decision, retention/deletion, rights/removal route, controller/processor instructions, breach process | Owner/Dev |
 | OR-05 | OBJ-01 | streamer.bot is offline during registration | Medium | Medium | 🟡 | No false success; viewer retries during next live stream | Dev |
 | OR-06 | OBJ-03 | Manual point corrections create data inconsistency | Medium | High | 🟠 | Transactional DB procedure and correction note; admin console later | Owner/Dev |
 

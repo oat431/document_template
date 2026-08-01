@@ -1,7 +1,7 @@
 # Deerngo Bot — Viewer Relationship Management (VRM)
 
 > **Project:** Deerngo Bot
-> **Version:** 0.2 | **Status:** Draft
+> **Version:** 0.3 | **Status:** Draft
 > **Last Updated:** 2026-08-02
 >
 > **Phase 1 change:** YouTube subscriber polling was removed after live verification showed that the YouTube API exposes only a limited subscriber subset. Viewers now explicitly join the VRM program with `:deer: register`.
@@ -211,7 +211,70 @@ total_points
 
 The public API does not expose display names, stable user IDs, raw donor names, donation messages, inactive members, private members, or zero-point members.
 
-> A YouTube handle can still be personal data under Thai PDPA. Registration notice, public visibility behavior, privacy/opt-out handling, and owner/operator responsibilities must be documented before public release.
+> A YouTube handle, donor name, donation event, and score may be personal data under Thai PDPA. Public visibility is a separate disclosure purpose; a public handle is not automatically outside PDPA because it is visible on YouTube.
+
+## Thai PDPA — Owner Responsibilities
+
+> **Important:** This is an operational privacy checklist, not legal advice or a PDPA compliance certification. The channel owner should confirm the final position with qualified Thai privacy counsel. The Thai-language law/official Gazette text controls over unofficial translations.
+
+The channel owner normally decides why and how Deerngo Bot processes member, donor, and score data. The owner is therefore likely the **Data Controller**. The developer/host may be a **Data Processor** only when acting on the owner's documented instructions and not reusing the data independently.
+
+For planning, the owner should discuss these Thai PDPA areas with counsel: Sections 5–6 (scope/data/roles), 19–24 (consent and lawful bases), 23 and 25 (notice and indirect collection), 27 (use/disclosure), 30–36 (data-subject rights), 37 (security/breach), and 39–41 (records, processor arrangements, and DPO-related obligations). This section mapping is not a legal conclusion; the Thai-language Act/Gazette controls.
+
+### Owner must do before public release
+
+- [ ] Document separate purposes: registration, donation matching, points, public scoreboard, security logs, and backups.
+- [ ] Publish a clear privacy notice covering the controller/contact, data collected, sources, purposes, recipients, hosting/transfer locations, retention, rights, and complaint/contact route.
+- [ ] Decide and record the lawful basis for each purpose. Treat public handle + score publication as a separate optional purpose; prefer explicit opt-in or obtain a documented legitimate-interest assessment.
+- [ ] Explain that `:deer: register` joins the points program and that public display is optional/controllable. A command alone is not automatically consent to every future use.
+- [ ] Provide a practical privacy route for hide, withdrawal, correction, access, and deletion/erasure requests, including a contact method outside live chat.
+- [ ] Define field-level retention/deletion rules for active members, inactive old handles, raw donor names/messages, logs, public projections/caches, exports, and backups.
+- [ ] Record written developer/host processing instructions: no independent reuse, least privilege, security, subprocessors, incident escalation, rights assistance, retention, backup deletion, return/destruction, and hosting locations.
+- [ ] Prepare a breach-response process. The developer/host should notify the owner immediately; the owner and counsel assess PDPC/data-subject notification duties.
+
+### Owner must not do
+
+- ❌ Do not publish raw EasyDonate donor names, messages, payment identifiers, or exact donation records on the scoreboard.
+- ❌ Do not expose stable YouTube/streamer.bot user IDs publicly.
+- ❌ Do not store YouTube display names when the MVP does not need them.
+- ❌ Do not assume a public handle is automatically free from PDPA obligations.
+- ❌ Do not treat lowercasing/removing `@` as anonymization.
+- ❌ Do not use fuzzy matching to guess who donated.
+- ❌ Do not transfer points automatically after a handle change.
+- ❌ Do not edit production points without a backup, transaction, reason, and before/after correction record.
+- ❌ Do not reuse the data for unrelated marketing/profiling without a new purpose/basis review and notice update.
+- ❌ Do not keep raw donor names/messages forever without a documented need.
+- ❌ Do not put personal data or secrets in GitHub issues, logs, screenshots, fixtures, or public documents.
+- ❌ Do not claim the system is “PDPA compliant” solely because it has `:deer: private`.
+
+### Minimum owner launch checklist
+
+```text
+Before launch:
+  privacy notice approved
+  purpose/lawful-basis decision documented
+  public-display choice documented
+  retention/deletion schedule approved
+  hide/correction/access/removal route tested
+  developer/host processing instructions recorded
+  breach contact/process documented
+  provider contract and security verified
+  privacy/security tests passed
+```
+
+Full owner guidance is in:
+
+`06_security/063_thai_pdpa_owner_checklist.md`
+
+### Official starting sources
+
+- [PDPC — Personal Data Protection Act, B.E. 2562 (2019)](https://www.pdpc.or.th/en/23134/)
+- [PDPC — Consent guidance](https://www.pdpc.or.th/14/)
+- [PDPC — Security Measures](https://www.pdpc.or.th/en/22758/)
+- [PDPC — Breach notification criteria](https://www.pdpc.or.th/en/22783/)
+- [PDPC — Erasure/destruction/de-identification criteria](https://www.pdpc.or.th/en/22864/)
+
+> This section is a product safeguard, not legal advice. Confirm the final controller/processor, lawful-basis, notice, retention, international-transfer, rights, and breach position with Thai counsel.
 
 ---
 
@@ -257,6 +320,8 @@ US-003 and its merged YouTube polling implementation are retained as historical 
 | Database Schema | `02_design/023_database_schema_DDL.md` | 0.2 |
 | ERD | `02_design/024_ERD.md` | 0.2 |
 | Architecture Overview | `02_design/029_architecture_overview.md` | 0.2 |
+| Thai PDPA Owner Checklist | `06_security/063_thai_pdpa_owner_checklist.md` | 0.1 |
+| PDPA Owner Handoff | `07_pm/072_MM08_po-to-owner-pdpa-owner-readiness_20260802.md` | 1.0 |
 | Scope Decision | `07_pm/072_MM06_dev-to-po-qa-youtube-subscriber-limit_20260801.md` | Final |
 
 ---
