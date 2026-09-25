@@ -478,7 +478,7 @@ Some templates use mermaid features that may not render in all Obsidian versions
 ## Related Documents
 
 - [[TEMPLATE-CHECKLIST]] — Master checklist of all 357 templates
-- [[Essential Documents - Overview]] — How documents map to BOKs
-- [[SWEBOK Essential Documents]] — SWEBOK document reference
-- [[SWEBOK v4 - Overview]] — Full SWEBOK knowledge base
-- [[Body of Knowledge - Overview]] — All 6 BOKs overview
+- F:\obsidian_note\swe-knowledge\document-template\00_Essential Document\Essential Documents - Overview.md — How documents map to BOKs
+- F:\obsidian_note\swe-knowledge\document-template\00_Essential Document\SWEBOK Essential Documents.md — SWEBOK document reference
+- F:\obsidian_note\swe-knowledge\body-of-knowledge\SWEBOK\SWEBOK v4 - Overview.md — Full SWEBOK knowledge base
+- F:\obsidian_note\swe-knowledge\body-of-knowledge\Body of Knowledge - Overview.md — All 6 BOKs overview
