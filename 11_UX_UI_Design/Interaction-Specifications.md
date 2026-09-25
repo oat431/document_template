@@ -19,6 +19,7 @@ tags: [interaction-design, micro-interactions, ux]
 standard_ref:
   - ISO 9241-210 — Human-Centred Design
   - Dan Saffer — Microinteractions
+standards_profile: "[ISO/IEC 29110 VSE | ISO/IEC/IEEE 12207 | none]"  # set per project tier: T1-T4 default 29110, T5+ consider 12207, T7 adds domain regs
 ---
 
 # Interaction Specifications

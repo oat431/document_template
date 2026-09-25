@@ -19,6 +19,7 @@ tags: [icd, interface-control, integration, sebok, iso-15288]
 standard_ref:
   - SEBoK v2 — System Architecture & Design (ISO/IEC/IEEE 15288 §6.4.4)
   - ISO/IEC/IEEE 42010 — Architecture Description
+standards_profile: "[ISO/IEC 29110 VSE | ISO/IEC/IEEE 12207 | none]"  # set per project tier: T1-T4 default 29110, T5+ consider 12207, T7 adds domain regs
 ---
 
 # Interface Control Document (ICD)

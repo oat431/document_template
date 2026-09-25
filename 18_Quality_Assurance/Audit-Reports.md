@@ -19,6 +19,7 @@ tags: [audit, compliance, quality, swebok, iso-9001]
 standard_ref:
   - SWEBOK v4 — Quality Assurance
   - ISO 9001 — Quality Management System
+standards_profile: "[ISO/IEC 29110 VSE | ISO/IEC/IEEE 12207 | none]"  # set per project tier: T1-T4 default 29110, T5+ consider 12207, T7 adds domain regs
 ---
 
 # Audit Reports

@@ -23,6 +23,7 @@ tags: [risk-management, risk-process, pmbok, iso-31000]
 standard_ref:
   - PMBOK v8 — Planning (Risk Management)
   - ISO 31000 — Risk Management
+standards_profile: "[ISO/IEC 29110 VSE | ISO/IEC/IEEE 12207 | none]"  # set per project tier: T1-T4 default 29110, T5+ consider 12207, T7 adds domain regs
 ---
 
 # Risk Management Plan
@@ -46,6 +47,16 @@ standard_ref:
 |------|------|-----------|------|
 | Project Sponsor | | | |
 | Project Manager | | | |
+
+### Document History & Access
+
+| # | Change | Status | Date | Viewable | Editable | Responsible |
+|---|--------|--------|------|----------|----------|-------------|
+| 1 | [Initial draft] | draft | [YYYY-MM-DD] | [Team] | [Author] | [Author] |
+| 2 | [Review outcome] | review | [YYYY-MM-DD] | [Team, Approver] | [Author] | [Author] |
+| 3 | [Approved release] | release | [YYYY-MM-DD] | [All stakeholders] | [Approver only] | [Approver] |
+
+> Status flow: `draft → review → release`. One row per state change; "Editable/Responsible" enforce who may modify after release (change control per [[Change-Request]]).
 
 ---
 

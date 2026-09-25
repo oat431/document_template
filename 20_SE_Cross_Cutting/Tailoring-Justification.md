@@ -18,6 +18,7 @@ tags: [tailoring, justification, process, sebok]
 standard_ref:
   - SEBoK v2 — Systems Engineering Management
   - ISO/IEC/IEEE 15288
+standards_profile: "[ISO/IEC 29110 VSE | ISO/IEC/IEEE 12207 | none]"  # set per project tier: T1-T4 default 29110, T5+ consider 12207, T7 adds domain regs
 ---
 
 # Tailoring Justification

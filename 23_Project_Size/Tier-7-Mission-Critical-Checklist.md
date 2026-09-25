@@ -9,7 +9,7 @@ minimum_form: This checklist itself
 version: "1.0"
 status: Active
 created: "2026-09-24"
-last_updated: "2026-09-24"
+last_updated: "2026-09-25"
 tags: [tier-checklist, tier-7, project-size, generated]
 generator: Generated from template frontmatter — do not hand-edit; regenerate instead
 ---
@@ -22,7 +22,8 @@ generator: Generated from template frontmatter — do not hand-edit; regenerate 
 >
 > **Key principle:** Everything a Tier-7 project needs = every template with `min_project_tier ≤ 7` whose trigger applies. Anything above tier 7 is over-engineering for this context.
 >
-> **Scope:** 360 artifacts (18 new at this tier, 342 inherited from lower tiers).
+> **Scope:** 361 artifacts (18 new at this tier, 343 inherited from lower tiers).
+> **Every project starts with** [[Product-Brief]] — the human's one-page idea seed.
 
 ## How to use
 
@@ -35,17 +36,17 @@ generator: Generated from template frontmatter — do not hand-edit; regenerate 
 
 | Tier | Checklist | Artifacts |
 |---|---|---|
-| 1 | [[Tier-1-POC-Spike-Checklist|🧪 POC / Spike]] | 1 |
-| 2 | [[Tier-2-Prototype-MVP-Checklist|🔧 Prototype / MVP]] | 6 |
-| 3 | [[Tier-3-Internal-Tool-Checklist|🏠 Internal Tool]] | 21 |
-| 4 | [[Tier-4-Small-Production-Checklist|🟢 Small Production]] | 228 |
-| 5 | [[Tier-5-Medium-Production-Checklist|🔵 Medium Production]] | 321 |
-| 6 | [[Tier-6-Production-Grade-Checklist|🟣 Production Grade]] | 342 |
-| 7 | **→ this tier** | 360 |
+| 1 | [[Tier-1-POC-Spike-Checklist|🧪 POC / Spike]] | 2 |
+| 2 | [[Tier-2-Prototype-MVP-Checklist|🔧 Prototype / MVP]] | 7 |
+| 3 | [[Tier-3-Internal-Tool-Checklist|🏠 Internal Tool]] | 22 |
+| 4 | [[Tier-4-Small-Production-Checklist|🟢 Small Production]] | 229 |
+| 5 | [[Tier-5-Medium-Production-Checklist|🔵 Medium Production]] | 322 |
+| 6 | [[Tier-6-Production-Grade-Checklist|🟣 Production Grade]] | 343 |
+| 7 | **→ this tier** | 361 |
 
 ## Business Analysis and strategy
 
-> **Owner:** PO / BA · 18 artifacts
+> **Owner:** PO / BA · 19 artifacts
 
 | Document | Priority | Form | Applies at tier | Trigger / Note | Status |
 |---|---|---|---|---|---|
@@ -64,7 +65,8 @@ generator: Generated from template frontmatter — do not hand-edit; regenerate 
 | [[Governance-Approach]] | 🔴 | heavy | T4 | always | ☐ |
 | [[Information-Management-Approach]] | 🔴 | heavy | T4 | always | ☐ |
 | [[Potential-Value]] | 🔴 | heavy | T4 | always | ☐ |
-| [[Risk-Analysis-Results]] | 🟡 | record | T4 | Produced by the activity it records · view of `Risk-Management-Plan` | ☐ |
+| [[Product-Brief]] | 🔴 | light | T1 | always | ☐ |
+| [[Risk-Analysis-Results]] | 🟡 | record | T4 | Produced by the activity it records | ☐ |
 | [[Solution-Recommendation]] | 🔴 | heavy | T4 | always | ☐ |
 | [[Solution-Scope]] | 🔴 | heavy | T4 | always | ☐ |
 
@@ -102,7 +104,7 @@ generator: Generated from template frontmatter — do not hand-edit; regenerate 
 | [[Acceptance-Criteria]] | 🔴 | heavy | T3 | always | ☐ |
 | [[Activity-Diagrams]] | 🟢 | light | T5 | Used inside parent artifacts when the modeling need arises | ☐ |
 | [[Assumption-Log]] | 🟡 | record | T2 | Produced by the activity it records | ☐ |
-| [[Business-Requirements-Document]] | 🔴 | heavy | T4 | always · view of `Business-Requirements` | ☐ |
+| [[Business-Requirements-Document]] | 🔴 | heavy | T4 | always | ☐ |
 | [[Decision-Tables-Trees]] | 🟢 | light | T4 | Used inside parent artifacts when the modeling need arises | ☐ |
 | [[Definition-of-done]] | 🔴 | light | T2 | always | ☐ |
 | [[Functional-Size-Measurement]] | 🟢 | light | T5 | Used inside parent artifacts when the modeling need arises | ☐ |
@@ -110,8 +112,8 @@ generator: Generated from template frontmatter — do not hand-edit; regenerate 
 | [[Project-Scope-Statement]] | 🔴 | heavy | T4 | always | ☐ |
 | [[Prototypes]] | 🟢 | heavy | T5 | Used inside parent artifacts when the modeling need arises | ☐ |
 | [[Requirements-Architecture]] | 🔴 | heavy | T4 | always | ☐ |
-| [[Requirements-Change-Assessment]] | 🔴 | light | T4 | always · view of `Change-Request` | ☐ |
-| [[Requirements-Change-Log]] | 🟡 | record | T4 | Produced by the activity it records · view of `Change-Request` | ☐ |
+| [[Requirements-Change-Assessment]] | 🔴 | light | T4 | always | ☐ |
+| [[Requirements-Change-Log]] | 🟡 | record | T4 | Produced by the activity it records | ☐ |
 | [[Requirements-Traceability-Matrix]] | 🔴 | heavy | T4 | always | ☐ |
 | [[Requirements-Validated]] | 🟡 | record | T4 | Produced by the activity it records | ☐ |
 | [[Requirements-Verified]] | 🟡 | record | T4 | Produced by the activity it records | ☐ |
@@ -132,11 +134,11 @@ generator: Generated from template frontmatter — do not hand-edit; regenerate 
 | [[Cost-Baseline]] | 🟡 | record | T4 | Produced by the activity it records | ☐ |
 | [[Cost-Estimates]] | 🔴 | light | T4 | always | ☐ |
 | [[Financial-Management-Plan]] | 🔴 | light | T4 | always | ☐ |
-| [[Milestone-List]] | 🟡 | record | T4 | Produced by the activity it records · view of `Schedule-Management-Plan` | ☐ |
+| [[Milestone-List]] | 🟡 | record | T4 | Produced by the activity it records | ☐ |
 | [[Project-Charter]] | 🔴 | light | T3 | always | ☐ |
 | [[Project-Funding-Requirements]] | 🔴 | light | T4 | always | ☐ |
 | [[Project-Management-Plan]] | 🔴 | heavy | T4 | always | ☐ |
-| [[Project-Schedule]] | 🔴 | light | T4 | always · view of `Schedule-Management-Plan` | ☐ |
+| [[Project-Schedule]] | 🔴 | light | T4 | always | ☐ |
 | [[Quality-Management-Plan]] | 🔴 | light | T4 | always | ☐ |
 | [[Quality-Metrics]] | 🟡 | record | T4 | Produced by the activity it records | ☐ |
 | [[RACI-Matrix]] | 🔴 | light | T4 | always | ☐ |
@@ -144,8 +146,8 @@ generator: Generated from template frontmatter — do not hand-edit; regenerate 
 | [[Resource-Management-Plan]] | 🔴 | light | T4 | always | ☐ |
 | [[Resource-Requirements]] | 🔴 | light | T4 | always | ☐ |
 | [[Risk-Management-Plan]] | 🔴 | light | T4 | always | ☐ |
-| [[Risk-Register]] | 🟡 | record | T2 | Produced by the activity it records · view of `Risk-Management-Plan` | ☐ |
-| [[Risk-Report]] | 🟡 | record | T5 | Produced by the activity it records · view of `Risk-Management-Plan` | ☐ |
+| [[Risk-Register]] | 🟡 | record | T2 | Produced by the activity it records | ☐ |
+| [[Risk-Report]] | 🟡 | record | T5 | Produced by the activity it records | ☐ |
 | [[Schedule-Baseline]] | 🟡 | record | T4 | Produced by the activity it records | ☐ |
 | [[Schedule-Management-Plan]] | 🔴 | light | T4 | always | ☐ |
 | [[Schedule-Network-Diagram]] | 🟢 | light | T5 | Used inside parent artifacts when the modeling need arises | ☐ |
@@ -162,11 +164,11 @@ generator: Generated from template frontmatter — do not hand-edit; regenerate 
 
 | Document | Priority | Form | Applies at tier | Trigger / Note | Status |
 |---|---|---|---|---|---|
-| [[Change-Log]] | 🟡 | record | T4 | Produced by the activity it records · view of `Change-Request` | ☐ |
-| [[Change-Requests]] | 🟡 | record | T4 | Produced by the activity it records · view of `Change-Request` | ☐ |
+| [[Change-Log]] | 🟡 | record | T4 | Produced by the activity it records | ☐ |
+| [[Change-Requests]] | 🟡 | record | T4 | Produced by the activity it records | ☐ |
 | [[Cost-Forecasts]] | 🔴 | light | T4 | always | ☐ |
 | [[Earned-Value-Analysis]] | 🔴 | light | T5 | always | ☐ |
-| [[Gantt-Chart-Schedule]] | 🔴 | light | T5 | always · view of `Schedule-Management-Plan` | ☐ |
+| [[Gantt-Chart-Schedule]] | 🔴 | light | T5 | always | ☐ |
 | [[Issue-Log]] | 🟡 | record | T3 | Produced by the activity it records | ☐ |
 | [[Lessons-Learned-Register]] | 🟡 | record | T4 | Produced by the activity it records | ☐ |
 | [[Meeting-Minutes]] | 🟡 | record | T3 | Produced by the activity it records | ☐ |
@@ -332,7 +334,7 @@ generator: Generated from template frontmatter — do not hand-edit; regenerate 
 | [[Test-Scripts-Automated]] | 🔴 | light | T4 | always | ☐ |
 | [[Test-Strategy]] | 🔴 | light | T4 | always | ☐ |
 | [[Test-Suite]] | 🔴 | light | T4 | always | ☐ |
-| [[Traceability-Matrix-Req-Tests]] | 🔴 | light | T4 | always · view of `Requirements-Traceability-Matrix` | ☐ |
+| [[Traceability-Matrix-Req-Tests]] | 🔴 | light | T4 | always | ☐ |
 | [[UAT-Sign-off]] | 🟡 | light | T4 | Separate business acceptance role exists; otherwise record acceptance decision elsewhere | ☐ |
 | [[Validation-Plan]] | 🔴 | light | T4 | always | ☐ |
 | [[Validation-Reports]] | 🟡 | record | T4 | Produced by the activity it records | ☐ |
@@ -466,12 +468,12 @@ generator: Generated from template frontmatter — do not hand-edit; regenerate 
 | Document | Priority | Form | Applies at tier | Trigger / Note | Status |
 |---|---|---|---|---|---|
 | [[Impact-Analysis-Report]] | 🟡 | record | T4 | Produced by the activity it records | ☐ |
-| [[Incident-Problem-Reports]] | 🟡 | record | T4 | Produced by the activity it records · view of `Incident-Management-Process` | ☐ |
+| [[Incident-Problem-Reports]] | 🟡 | record | T4 | Produced by the activity it records | ☐ |
 | [[Logistics-Plan]] | 🟡 | light | T6 | Systems-engineering, safety, formal-assurance, or organization-program context | ☐ |
 | [[Maintenance-Log-Change-History]] | 🔴 | light | T4 | always | ☐ |
 | [[Maintenance-Metrics-Dashboard]] | 🟡 | record | T5 | Produced by the activity it records | ☐ |
 | [[Maintenance-Plan]] | 🔴 | light | T4 | always | ☐ |
-| [[Modification-Request]] | 🔴 | light | T5 | always · view of `Change-Request` | ☐ |
+| [[Modification-Request]] | 🔴 | light | T5 | always | ☐ |
 | [[SLA-Compliance-Report]] | 🟡 | record | T5 | Produced by the activity it records | ☐ |
 | [[Technical-Debt-Register]] | 🟡 | record | T5 | Produced by the activity it records | ☐ |
 
@@ -488,7 +490,7 @@ generator: Generated from template frontmatter — do not hand-edit; regenerate 
 | [[Process-Assessment-Report]] | 🟡 | record | T6 | Systems-engineering, safety, formal-assurance, or organization-program context | ☐ |
 | [[QMS-Documentation]] | 🟡 | light | T6 | Systems-engineering, safety, formal-assurance, or organization-program context | ☐ |
 | [[Quality-Metrics-Dashboard]] | 🟡 | record | T5 | Formal QA program or certification context | ☐ |
-| [[RCA-Reports]] | 🟡 | record | T5 | Formal QA program or certification context · view of `Incident-Management-Process` | ☐ |
+| [[RCA-Reports]] | 🟡 | record | T5 | Formal QA program or certification context | ☐ |
 | [[Review-Records]] | 🔴 | light | T4 | always | ☐ |
 | [[SQAP]] | 🔴 | light | T4 | always | ☐ |
 | [[VandV-Plan]] | 🔴 | light | T5 | always | ☐ |
@@ -569,6 +571,7 @@ generator: Generated from template frontmatter — do not hand-edit; regenerate 
 
 ## Related
 
-- [[7-Tier Applicability Matrix]] — full matrix view over all 363 templates
-- F:\\obsidian_note\\swe-knowledge\\checklist\\release-checklist\\release.md — tier model source (Project Tier Scoping Matrix)
+- [[7-Tier Applicability Matrix]] — full matrix view over all 361 templates
+- [[release]] — tier model source (Project Tier Scoping Matrix)
 - [[TEMPLATE-INDEX]] — regenerated master index
+- [[Product-Brief]] — where every project starts

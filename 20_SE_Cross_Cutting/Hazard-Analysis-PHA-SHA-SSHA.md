@@ -19,6 +19,7 @@ tags: [hazard-analysis, pha, sha, ssha, sebok, mil-std-882]
 standard_ref:
   - SEBoK v2 — System Safety
   - MIL-STD-882 — System Safety
+standards_profile: "[ISO/IEC 29110 VSE | ISO/IEC/IEEE 12207 | none]"  # set per project tier: T1-T4 default 29110, T5+ consider 12207, T7 adds domain regs
 ---
 
 # Hazard Analysis (PHA, SHA, SSHA)

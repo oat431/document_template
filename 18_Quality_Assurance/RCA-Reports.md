@@ -21,6 +21,7 @@ classification: "Internal / Confidential"
 tags: [rca, root-cause-analysis, five-whys, fishbone, swebok]
 standard_ref:
   - SWEBOK v4 — Quality Assurance
+standards_profile: "[ISO/IEC 29110 VSE | ISO/IEC/IEEE 12207 | none]"  # set per project tier: T1-T4 default 29110, T5+ consider 12207, T7 adds domain regs
 ---
 
 # RCA Reports (Root Cause Analysis)

@@ -18,6 +18,7 @@ tags: [verification, v-and-v, sebok, iso-15288]
 standard_ref:
   - SEBoK v2 — Verification & Validation (ISO/IEC/IEEE 15288)
   - ISO/IEC/IEEE 29119 — Software Testing
+standards_profile: "[ISO/IEC 29110 VSE | ISO/IEC/IEEE 12207 | none]"  # set per project tier: T1-T4 default 29110, T5+ consider 12207, T7 adds domain regs
 ---
 
 # Verification Plan

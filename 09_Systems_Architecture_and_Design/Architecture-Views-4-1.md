@@ -20,6 +20,7 @@ standard_ref:
   - SWEBOK v4 — Architecture
   - ISO/IEC/IEEE 42010 — Architecture Description
   - Philippe Kruchten — 4+1 View Model
+standards_profile: "[ISO/IEC 29110 VSE | ISO/IEC/IEEE 12207 | none]"  # set per project tier: T1-T4 default 29110, T5+ consider 12207, T7 adds domain regs
 ---
 
 # Architecture Views (4+1)

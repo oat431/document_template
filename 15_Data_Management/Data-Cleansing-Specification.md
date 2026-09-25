@@ -18,6 +18,7 @@ classification: "Internal"
 tags: [data-cleansing, data-quality, dmbok]
 standard_ref:
   - DMBOK v2 — Data Quality
+standards_profile: "[ISO/IEC 29110 VSE | ISO/IEC/IEEE 12207 | none]"  # set per project tier: T1-T4 default 29110, T5+ consider 12207, T7 adds domain regs
 ---
 
 # Data Cleansing Specification

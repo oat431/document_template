@@ -20,6 +20,7 @@ standard_ref:
   - SWEBOK v4 — Requirements
   - ISO/IEC/IEEE 29148 — Requirements Engineering
   - BABOK v3 — BA Planning & Monitoring
+standards_profile: "[ISO/IEC 29110 VSE | ISO/IEC/IEEE 12207 | none]"  # set per project tier: T1-T4 default 29110, T5+ consider 12207, T7 adds domain regs
 ---
 
 # Stakeholder Analysis
@@ -31,18 +32,27 @@ standard_ref:
 ---
 
 ## Document Control
-
 | Field | Value |
 |-------|-------|
 | Document Owner | [Name / Role] |
 | Business Analyst | [Name / Role] |
 
 ### Revision History
-
 | Version | Date | Author | Change Description |
 |---------|------|--------|--------------------|
 | 0.1 | [YYYY-MM-DD] | [Name] | Initial draft |
 | 1.0 | [YYYY-MM-DD] | [Name] | Approved version |
+
+
+### Document History & Access
+
+| # | Change | Status | Date | Viewable | Editable | Responsible |
+|---|--------|--------|------|----------|----------|-------------|
+| 1 | [Initial draft] | draft | [YYYY-MM-DD] | [Team] | [Author] | [Author] |
+| 2 | [Review outcome] | review | [YYYY-MM-DD] | [Team, Approver] | [Author] | [Author] |
+| 3 | [Approved release] | release | [YYYY-MM-DD] | [All stakeholders] | [Approver only] | [Approver] |
+
+> Status flow: `draft → review → release`. One row per state change; "Editable/Responsible" enforce who may modify after release (change control per [[Change-Request]]).
 
 ---
 

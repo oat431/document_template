@@ -19,6 +19,7 @@ tags: [access-control, rbac, least-privilege, cyberok, iso-27001]
 standard_ref:
   - CyBOK v1 — Access Control
   - ISO/IEC 27001:2022 — A.9 Access Control
+standards_profile: "[ISO/IEC 29110 VSE | ISO/IEC/IEEE 12207 | none]"  # set per project tier: T1-T4 default 29110, T5+ consider 12207, T7 adds domain regs
 ---
 
 # Access Control Policy

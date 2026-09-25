@@ -18,6 +18,7 @@ tags: [review-records, inspections, swebok, iso-20246]
 standard_ref:
   - SWEBOK v4 — Quality Assurance
   - ISO/IEC 20246 — Work Product Reviews
+standards_profile: "[ISO/IEC 29110 VSE | ISO/IEC/IEEE 12207 | none]"  # set per project tier: T1-T4 default 29110, T5+ consider 12207, T7 adds domain regs
 ---
 
 # Review Records

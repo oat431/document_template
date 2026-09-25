@@ -21,6 +21,7 @@ tags: [prototypes, wireframes, mockups, ux, swebok]
 standard_ref:
   - SWEBOK v4 — Requirements
   - ISO 9241-210 — Human-Centred Design
+standards_profile: "[ISO/IEC 29110 VSE | ISO/IEC/IEEE 12207 | none]"  # set per project tier: T1-T4 default 29110, T5+ consider 12207, T7 adds domain regs
 ---
 
 # Prototypes (Low/High Fidelity)
@@ -32,7 +33,6 @@ standard_ref:
 ---
 
 ## Document Control
-
 | Field | Value |
 |-------|-------|
 | Document Owner | [Name / Role] |
@@ -40,12 +40,22 @@ standard_ref:
 | UI/UX Designer | [Name / Role] |
 
 ### Revision History
-
 | Version | Date | Author | Change Description |
 |---------|------|--------|--------------------|
 | 0.1 | [YYYY-MM-DD] | [Name] | Low-fi wireframes |
 | 0.2 | [YYYY-MM-DD] | [Name] | Mid-fi wireframes |
 | 1.0 | [YYYY-MM-DD] | [Name] | High-fi prototypes |
+
+
+### Document History & Access
+
+| # | Change | Status | Date | Viewable | Editable | Responsible |
+|---|--------|--------|------|----------|----------|-------------|
+| 1 | [Initial draft] | draft | [YYYY-MM-DD] | [Team] | [Author] | [Author] |
+| 2 | [Review outcome] | review | [YYYY-MM-DD] | [Team, Approver] | [Author] | [Author] |
+| 3 | [Approved release] | release | [YYYY-MM-DD] | [All stakeholders] | [Approver only] | [Approver] |
+
+> Status flow: `draft → review → release`. One row per state change; "Editable/Responsible" enforce who may modify after release (change control per [[Change-Request]]).
 
 ---
 

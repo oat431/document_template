@@ -19,6 +19,7 @@ tags: [bcp, business-continuity, resilience, cyberok, iso-22301]
 standard_ref:
   - CyBOK v1 — Resilience
   - ISO 22301 — Business Continuity
+standards_profile: "[ISO/IEC 29110 VSE | ISO/IEC/IEEE 12207 | none]"  # set per project tier: T1-T4 default 29110, T5+ consider 12207, T7 adds domain regs
 ---
 
 # Business Continuity Plan (BCP)

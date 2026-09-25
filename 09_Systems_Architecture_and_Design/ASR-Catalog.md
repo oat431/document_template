@@ -20,6 +20,7 @@ tags: [asr, architecturally-significant, requirements, swebok, iso-42010]
 standard_ref:
   - SWEBOK v4 — Architecture
   - ISO/IEC/IEEE 42010 — Architecture Description
+standards_profile: "[ISO/IEC 29110 VSE | ISO/IEC/IEEE 12207 | none]"  # set per project tier: T1-T4 default 29110, T5+ consider 12207, T7 adds domain regs
 ---
 
 # ASR Catalog (Architecturally Significant Requirements)

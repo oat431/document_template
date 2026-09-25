@@ -18,6 +18,7 @@ classification: "Confidential"
 tags: [adversary-emulation, red-team, threat-intelligence, cyberok]
 standard_ref:
   - CyBOK v1 — Security Testing
+standards_profile: "[ISO/IEC 29110 VSE | ISO/IEC/IEEE 12207 | none]"  # set per project tier: T1-T4 default 29110, T5+ consider 12207, T7 adds domain regs
 ---
 
 # Adversary Emulation Plan

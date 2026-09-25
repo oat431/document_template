@@ -19,6 +19,7 @@ tags: [earned-value, evm, spi, cpi, pmbok, iso-21508]
 standard_ref:
   - PMBOK v8 — Monitoring & Controlling
   - ISO 21508 — Earned Value Management
+standards_profile: "[ISO/IEC 29110 VSE | ISO/IEC/IEEE 12207 | none]"  # set per project tier: T1-T4 default 29110, T5+ consider 12207, T7 adds domain regs
 ---
 
 # Earned Value Analysis

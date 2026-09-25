@@ -22,6 +22,7 @@ standard_ref:
   - PMBOK v8 — Planning (Quality Management)
   - ISO/IEC 25010 — SQuaRE (Quality Model)
   - IEEE 1633 — Software Reliability
+standards_profile: "[ISO/IEC 29110 VSE | ISO/IEC/IEEE 12207 | none]"  # set per project tier: T1-T4 default 29110, T5+ consider 12207, T7 adds domain regs
 ---
 
 # Quality Metrics

@@ -9,7 +9,7 @@ minimum_form: This checklist itself
 version: "1.0"
 status: Active
 created: "2026-09-24"
-last_updated: "2026-09-24"
+last_updated: "2026-09-25"
 tags: [tier-checklist, tier-2, project-size, generated]
 generator: Generated from template frontmatter — do not hand-edit; regenerate instead
 ---
@@ -22,7 +22,8 @@ generator: Generated from template frontmatter — do not hand-edit; regenerate 
 >
 > **Key principle:** Everything a Tier-2 project needs = every template with `min_project_tier ≤ 2` whose trigger applies. Anything above tier 2 is over-engineering for this context.
 >
-> **Scope:** 6 artifacts (5 new at this tier, 1 inherited from lower tiers).
+> **Scope:** 7 artifacts (5 new at this tier, 2 inherited from lower tiers).
+> **Every project starts with** [[Product-Brief]] — the human's one-page idea seed.
 
 ## How to use
 
@@ -35,13 +36,21 @@ generator: Generated from template frontmatter — do not hand-edit; regenerate 
 
 | Tier | Checklist | Artifacts |
 |---|---|---|
-| 1 | [[Tier-1-POC-Spike-Checklist|🧪 POC / Spike]] | 1 |
-| 2 | **→ this tier** | 6 |
-| 3 | [[Tier-3-Internal-Tool-Checklist|🏠 Internal Tool]] | 21 |
-| 4 | [[Tier-4-Small-Production-Checklist|🟢 Small Production]] | 228 |
-| 5 | [[Tier-5-Medium-Production-Checklist|🔵 Medium Production]] | 321 |
-| 6 | [[Tier-6-Production-Grade-Checklist|🟣 Production Grade]] | 342 |
-| 7 | [[Tier-7-Mission-Critical-Checklist|🔴 Mission-Critical / Regulated]] | 360 |
+| 1 | [[Tier-1-POC-Spike-Checklist|🧪 POC / Spike]] | 2 |
+| 2 | **→ this tier** | 7 |
+| 3 | [[Tier-3-Internal-Tool-Checklist|🏠 Internal Tool]] | 22 |
+| 4 | [[Tier-4-Small-Production-Checklist|🟢 Small Production]] | 229 |
+| 5 | [[Tier-5-Medium-Production-Checklist|🔵 Medium Production]] | 322 |
+| 6 | [[Tier-6-Production-Grade-Checklist|🟣 Production Grade]] | 343 |
+| 7 | [[Tier-7-Mission-Critical-Checklist|🔴 Mission-Critical / Regulated]] | 361 |
+
+## Business Analysis and strategy
+
+> **Owner:** PO / BA · 1 artifacts
+
+| Document | Priority | Form | Applies at tier | Trigger / Note | Status |
+|---|---|---|---|---|---|
+| [[Product-Brief]] | 🔴 | light | T1 | always | ☐ |
 
 ## Requirements Engineering
 
@@ -58,7 +67,7 @@ generator: Generated from template frontmatter — do not hand-edit; regenerate 
 
 | Document | Priority | Form | Applies at tier | Trigger / Note | Status |
 |---|---|---|---|---|---|
-| [[Risk-Register]] | 🟡 | record | T2 🆕 | Produced by the activity it records · view of `Risk-Management-Plan` | ☐ |
+| [[Risk-Register]] | 🟡 | record | T2 🆕 | Produced by the activity it records | ☐ |
 
 ## Systems Architecture and Design
 
@@ -89,6 +98,7 @@ generator: Generated from template frontmatter — do not hand-edit; regenerate 
 
 ## Related
 
-- [[7-Tier Applicability Matrix]] — full matrix view over all 363 templates
-- F:\\obsidian_note\\swe-knowledge\\checklist\\release-checklist\\release.md — tier model source (Project Tier Scoping Matrix)
+- [[7-Tier Applicability Matrix]] — full matrix view over all 361 templates
+- [[release]] — tier model source (Project Tier Scoping Matrix)
 - [[TEMPLATE-INDEX]] — regenerated master index
+- [[Product-Brief]] — where every project starts

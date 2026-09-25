@@ -19,6 +19,7 @@ tags: [risk-treatment, mitigation, cyberok, iso-27005]
 standard_ref:
   - CyBOK v1 — Security Risk Management
   - ISO/IEC 27005 — Information Security Risk Management
+standards_profile: "[ISO/IEC 29110 VSE | ISO/IEC/IEEE 12207 | none]"  # set per project tier: T1-T4 default 29110, T5+ consider 12207, T7 adds domain regs
 ---
 
 # Risk Treatment Plan

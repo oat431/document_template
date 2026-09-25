@@ -19,6 +19,7 @@ tags: [ssdlc, secure-development-lifecycle, cyberok, iso-27034]
 standard_ref:
   - CyBOK v1 — Secure Software Engineering
   - ISO/IEC 27034 — Application Security
+standards_profile: "[ISO/IEC 29110 VSE | ISO/IEC/IEEE 12207 | none]"  # set per project tier: T1-T4 default 29110, T5+ consider 12207, T7 adds domain regs
 ---
 
 # SSDLC Process Documentation (Secure Software Development Lifecycle)

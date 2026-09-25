@@ -20,6 +20,7 @@ classification: "Internal / Confidential"
 tags: [modification-request, change-request, swebok]
 standard_ref:
   - SWEBOK v4 — Maintenance
+standards_profile: "[ISO/IEC 29110 VSE | ISO/IEC/IEEE 12207 | none]"  # set per project tier: T1-T4 default 29110, T5+ consider 12207, T7 adds domain regs
 ---
 
 # MR/PR (Modification Request)

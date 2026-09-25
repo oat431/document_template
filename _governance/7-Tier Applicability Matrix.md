@@ -1,68 +1,71 @@
 ---
-tags: [tier-matrix, applicability, schema-v2, spec-driven, tailoring]
+tags: [tier-matrix, applicability, schema-v2, spec-driven, tailoring, generated]
 status: Generated — regenerate from frontmatter, never hand-edit
 created: 2026-09-24
+regenerated: 2026-09-25 (+Product-Brief)
 generator: phase3 mapping script (source of truth = template frontmatter)
 tier_model: "checklist/release-checklist/release.md — Project Tier Scoping Matrix (7 tiers)"
 ---
 
 # 7-Tier Applicability Matrix
 
-> Generated view over the `schema_version: 2` frontmatter of all 363 templates. **Source of truth is each template's frontmatter** — regenerate this file, don't hand-edit.
-> Tiers per F:\\obsidian_note\\swe-knowledge\\checklist\\release-checklist\\release.md §Project Tier Scoping Matrix: 🧪 POC → 🔧 Prototype → 🏠 Internal → 🟢 Small-Prod → 🔵 Medium-Prod → 🟣 Prod-Grade → 🔴 Mission-Crit.
+> Generated view over the `schema_version: 2` frontmatter of all 361 templates. **Source of truth is each template's frontmatter** — regenerate this file, don't hand-edit.
+> Tiers per [[release]] §Project Tier Scoping Matrix: 🧪 POC → 🔧 Prototype → 🏠 Internal → 🟢 Small-Prod → 🔵 Medium-Prod → 🟣 Prod-Grade → 🔴 Mission-Crit.
 > `min_project_tier` = the lowest project tier at which this artifact becomes required/expected. Below that tier: skip (over-engineering).
 
 ## How to tailor a project
 
-1. Determine your tier from the decision flow in `release.md` §"Which Tier Am I?".
-2. Take every template with `min_project_tier <= your tier` AND (`applicability: universal` OR its `tier_trigger` condition is true).
-3. `applicability: evidence` artifacts are produced by activities — create the record when the activity happens, not upfront.
-4. `applicability: technique` artifacts live inside parent documents — never standalone paperwork.
-5. Record omissions/combinations in the project's Tailoring-Justification (min tier 1 — always).
+1. Start from [[Product-Brief]] (tier 1 — every project).
+2. Determine your tier from the decision flow in `release.md` §"Which Tier Am I?".
+3. Take every template with `min_project_tier <= your tier` AND (`applicability: universal` OR its `tier_trigger` condition is true).
+4. `applicability: evidence` artifacts are produced by activities — create the record when the activity happens, not upfront.
+5. `applicability: technique` artifacts live inside parent documents — never standalone paperwork.
+6. Record omissions/combinations in the project's [[Tailoring-Justification]] (min tier 1 — always).
 
 ## Distribution
 
 | Tier (min) | Count |
 |---|---|
-| 1 🧪 POC | 1 |
+| 1 🧪 POC | 2 |
 | 2 🔧 Prototype | 5 |
 | 3 🏠 Internal | 15 |
 | 4 🟢 Small-Prod | 207 |
-| 5 🔵 Medium-Prod | 95 |
+| 5 🔵 Medium-Prod | 93 |
 | 6 🟣 Prod-Grade | 21 |
-| 7 🔴 Mission-Crit | 19 |
+| 7 🔴 Mission-Crit | 18 |
 
 | Applicability | Count |
 |---|---|
-| conditional | 161 |
-| universal | 133 |
-| evidence | 55 |
+| conditional | 160 |
+| universal | 134 |
+| evidence | 53 |
 | technique | 14 |
 
 | Doc form | Count |
 |---|---|
-| light | 236 |
-| record | 92 |
+| light | 237 |
+| record | 89 |
 | heavy | 35 |
 
-> Cumulative reading: a 🟢 Small-Prod project uses everything at tiers 1–4 ≈ 228 artifacts before conditional triggers; a 🧪 POC uses ≈ 1.
+> Cumulative reading: a 🟢 Small-Prod project uses everything at tiers 1–4 ≈ 229 artifacts before conditional triggers; a 🧪 POC uses ≈ 2.
 
 ## 01_Business_Analysis_and_strategy
 
 | Template | Tier | Applicability | Form | Trigger / Overlap |
 |---|---|---|---|---|
+| [[Product-Brief]] | 1 | universal | light |  |
 | [[Business-Objectives]] | 3 | universal | heavy |  |
 | [[Benefits-Management-Plan]] | 4 | universal | heavy |  |
 | [[Business-Analysis-Approach]] | 4 | universal | heavy |  |
 | [[Business-Case]] | 4 | universal | heavy |  |
-| [[Business-Requirements]] | 4 | universal | heavy | ⟷ `business-requirements` → SoT `01_Business_Analysis_and_strategy/Business-Requirements.md` |
+| [[Business-Requirements]] | 4 | universal | heavy |  |
 | [[Change-Strategy]] | 4 | universal | heavy |  |
 | [[Current-State-Description]] | 4 | universal | heavy |  |
 | [[Future-State-Description]] | 4 | universal | heavy |  |
 | [[Governance-Approach]] | 4 | universal | heavy |  |
 | [[Information-Management-Approach]] | 4 | universal | heavy |  |
 | [[Potential-Value]] | 4 | universal | heavy |  |
-| [[Risk-Analysis-Results]] | 4 | evidence | record | Produced by the activity it records · ⟷ `risk` → SoT `05_Project_Management_Planning/Risk-Management-Plan.md` |
+| [[Risk-Analysis-Results]] | 4 | evidence | record | Produced by the activity it records · ⟷ view of `Risk-Management-Plan` |
 | [[Solution-Recommendation]] | 4 | universal | heavy |  |
 | [[Solution-Scope]] | 4 | universal | heavy |  |
 | [[BA-Performance-Assessment]] | 5 | universal | heavy |  |
@@ -87,7 +90,7 @@ tier_model: "checklist/release-checklist/release.md — Project Tier Scoping Mat
 | [[Mission-Analysis-Report]] | 4 | evidence | record | Produced by the activity it records |
 | [[Stakeholder-Needs-Document]] | 4 | universal | heavy |  |
 | [[Stakeholder-Register]] | 4 | evidence | record | Produced by the activity it records |
-| [[System-Requirements-Specification]] | 4 | universal | heavy | ⟷ `requirements-spec` → SoT `03_Concept_and_Mission_Definition/System-Requirements-Specification.md` |
+| [[System-Requirements-Specification]] | 4 | universal | heavy |  |
 | [[Feasibility-Study]] | 5 | universal | heavy |  |
 | [[Market-Analysis-Technology-Assessment]] | 5 | universal | heavy |  |
 
@@ -100,16 +103,16 @@ tier_model: "checklist/release-checklist/release.md — Project Tier Scoping Mat
 | [[Acceptance-Criteria]] | 3 | universal | heavy |  |
 | [[Nonfunctional-Requirements-Catalog]] | 3 | evidence | record | Produced by the activity it records |
 | [[User-Stories]] | 3 | universal | heavy |  |
-| [[Business-Requirements-Document]] | 4 | universal | heavy | ⟷ `business-requirements` → SoT `01_Business_Analysis_and_strategy/Business-Requirements.md` |
+| [[Business-Requirements-Document]] | 4 | universal | heavy | ⟷ view of `Business-Requirements` |
 | [[Decision-Tables-Trees]] | 4 | technique | light | Used inside parent artifacts when the modeling need arises |
 | [[Project-Scope-Statement]] | 4 | universal | heavy |  |
 | [[Requirements-Architecture]] | 4 | universal | heavy |  |
-| [[Requirements-Change-Assessment]] | 4 | universal | light | ⟷ `change-control` → SoT `19_Configuration_Management/Change-Request.md` |
-| [[Requirements-Change-Log]] | 4 | evidence | record | Produced by the activity it records · ⟷ `change-control` → SoT `19_Configuration_Management/Change-Request.md` |
-| [[Requirements-Traceability-Matrix]] | 4 | universal | heavy | ⟷ `traceability` → SoT `04_Requirements_Engineering/Requirements-Traceability-Matrix.md` |
+| [[Requirements-Change-Assessment]] | 4 | universal | light | ⟷ view of `Change-Request` |
+| [[Requirements-Change-Log]] | 4 | evidence | record | Produced by the activity it records · ⟷ view of `Change-Request` |
+| [[Requirements-Traceability-Matrix]] | 4 | universal | heavy |  |
 | [[Requirements-Validated]] | 4 | evidence | record | Produced by the activity it records |
 | [[Requirements-Verified]] | 4 | evidence | record | Produced by the activity it records |
-| [[Software-Requirements-Specification]] | 4 | universal | heavy | ⟷ `requirements-spec` → SoT `04_Requirements_Engineering/Software-Requirements-Specification.md` |
+| [[Software-Requirements-Specification]] | 4 | universal | heavy |  |
 | [[Stakeholder-Analysis]] | 4 | universal | heavy |  |
 | [[Activity-Diagrams]] | 5 | technique | light | Used inside parent artifacts when the modeling need arises |
 | [[Functional-Size-Measurement]] | 5 | technique | light | Used inside parent artifacts when the modeling need arises |
@@ -120,31 +123,31 @@ tier_model: "checklist/release-checklist/release.md — Project Tier Scoping Mat
 
 | Template | Tier | Applicability | Form | Trigger / Overlap |
 |---|---|---|---|---|
-| [[Risk-Register]] | 2 | evidence | record | Produced by the activity it records · ⟷ `risk` → SoT `05_Project_Management_Planning/Risk-Management-Plan.md` |
+| [[Risk-Register]] | 2 | evidence | record | Produced by the activity it records · ⟷ view of `Risk-Management-Plan` |
 | [[Project-Charter]] | 3 | universal | light |  |
 | [[Activity-List]] | 4 | evidence | record | Produced by the activity it records |
 | [[Communications-Management-Plan]] | 4 | universal | light |  |
 | [[Cost-Baseline]] | 4 | evidence | record | Produced by the activity it records |
 | [[Cost-Estimates]] | 4 | universal | light |  |
 | [[Financial-Management-Plan]] | 4 | universal | light |  |
-| [[Milestone-List]] | 4 | evidence | record | Produced by the activity it records · ⟷ `schedule` → SoT `05_Project_Management_Planning/Schedule-Management-Plan.md` |
+| [[Milestone-List]] | 4 | evidence | record | Produced by the activity it records · ⟷ view of `Schedule-Management-Plan` |
 | [[Project-Funding-Requirements]] | 4 | universal | light |  |
 | [[Project-Management-Plan]] | 4 | universal | heavy |  |
-| [[Project-Schedule]] | 4 | universal | light | ⟷ `schedule` → SoT `05_Project_Management_Planning/Schedule-Management-Plan.md` |
+| [[Project-Schedule]] | 4 | universal | light | ⟷ view of `Schedule-Management-Plan` |
 | [[Quality-Management-Plan]] | 4 | universal | light |  |
 | [[Quality-Metrics]] | 4 | evidence | record | Produced by the activity it records |
 | [[RACI-Matrix]] | 4 | universal | light |  |
 | [[Resource-Management-Plan]] | 4 | universal | light |  |
 | [[Resource-Requirements]] | 4 | universal | light |  |
-| [[Risk-Management-Plan]] | 4 | universal | light | ⟷ `risk` → SoT `05_Project_Management_Planning/Risk-Management-Plan.md` |
+| [[Risk-Management-Plan]] | 4 | universal | light |  |
 | [[Schedule-Baseline]] | 4 | evidence | record | Produced by the activity it records |
-| [[Schedule-Management-Plan]] | 4 | universal | light | ⟷ `schedule` → SoT `05_Project_Management_Planning/Schedule-Management-Plan.md` |
+| [[Schedule-Management-Plan]] | 4 | universal | light |  |
 | [[Scope-Management-Plan]] | 4 | universal | light |  |
 | [[Stakeholder-Engagement-Plan]] | 4 | universal | light |  |
 | [[WBS-WBS-Dictionary]] | 4 | universal | light |  |
 | [[Basis-of-Estimates]] | 5 | universal | light |  |
 | [[Resource-Breakdown-Structure]] | 5 | universal | light |  |
-| [[Risk-Report]] | 5 | evidence | record | Produced by the activity it records · ⟷ `risk` → SoT `05_Project_Management_Planning/Risk-Management-Plan.md` |
+| [[Risk-Report]] | 5 | evidence | record | Produced by the activity it records · ⟷ view of `Risk-Management-Plan` |
 | [[Schedule-Network-Diagram]] | 5 | technique | light | Used inside parent artifacts when the modeling need arises |
 | [[Skill-Matrix]] | 5 | universal | light |  |
 | [[Stakeholder-Engagement-Assessment-Matrix]] | 5 | universal | light |  |
@@ -156,8 +159,8 @@ tier_model: "checklist/release-checklist/release.md — Project Tier Scoping Mat
 |---|---|---|---|---|
 | [[Issue-Log]] | 3 | evidence | record | Produced by the activity it records |
 | [[Meeting-Minutes]] | 3 | evidence | record | Produced by the activity it records |
-| [[Change-Log]] | 4 | evidence | record | Produced by the activity it records · ⟷ `change-control` → SoT `19_Configuration_Management/Change-Request.md` |
-| [[Change-Requests]] | 4 | evidence | record | Produced by the activity it records · ⟷ `change-control` → SoT `19_Configuration_Management/Change-Request.md` |
+| [[Change-Log]] | 4 | evidence | record | Produced by the activity it records · ⟷ view of `Change-Request` |
+| [[Change-Requests]] | 4 | evidence | record | Produced by the activity it records · ⟷ view of `Change-Request` |
 | [[Cost-Forecasts]] | 4 | universal | light |  |
 | [[Lessons-Learned-Register]] | 4 | evidence | record | Produced by the activity it records |
 | [[Schedule-Forecasts]] | 4 | universal | light |  |
@@ -166,7 +169,7 @@ tier_model: "checklist/release-checklist/release.md — Project Tier Scoping Mat
 | [[Work-Performance-Information]] | 4 | evidence | record | Produced by the activity it records |
 | [[Work-Performance-Reports]] | 4 | evidence | record | Produced by the activity it records |
 | [[Earned-Value-Analysis]] | 5 | universal | light |  |
-| [[Gantt-Chart-Schedule]] | 5 | universal | light | ⟷ `schedule` → SoT `05_Project_Management_Planning/Schedule-Management-Plan.md` |
+| [[Gantt-Chart-Schedule]] | 5 | universal | light | ⟷ view of `Schedule-Management-Plan` |
 | [[Variance-Analysis-Reports]] | 5 | evidence | record | Produced by the activity it records |
 
 ## 07_Project_Management_Closing
@@ -307,7 +310,7 @@ tier_model: "checklist/release-checklist/release.md — Project Tier Scoping Mat
 | [[Test-Scripts-Automated]] | 4 | universal | light |  |
 | [[Test-Strategy]] | 4 | universal | light |  |
 | [[Test-Suite]] | 4 | universal | light |  |
-| [[Traceability-Matrix-Req-Tests]] | 4 | universal | light | ⟷ `traceability` → SoT `04_Requirements_Engineering/Requirements-Traceability-Matrix.md` |
+| [[Traceability-Matrix-Req-Tests]] | 4 | universal | light | ⟷ view of `Requirements-Traceability-Matrix` |
 | [[UAT-Sign-off]] | 4 | conditional | light | Separate business acceptance role exists; otherwise record acceptance decision elsewhere |
 | [[Validation-Plan]] | 4 | universal | light |  |
 | [[Validation-Reports]] | 4 | evidence | record | Produced by the activity it records |
@@ -419,7 +422,7 @@ tier_model: "checklist/release-checklist/release.md — Project Tier Scoping Mat
 | [[CI-CD-Pipeline-Configuration]] | 3 | universal | light |  |
 | [[Deployment-Plan]] | 4 | universal | light |  |
 | [[Disaster-Recovery-Plan]] | 4 | conditional | light | Meaningful availability or data-loss requirement |
-| [[Incident-Management-Process]] | 4 | universal | light | ⟷ `incident` → SoT `16_Deployment_and_Operations/Incident-Management-Process.md` |
+| [[Incident-Management-Process]] | 4 | universal | light |  |
 | [[Operations-Manual-Runbook]] | 4 | universal | light |  |
 | [[Release-Notes]] | 4 | evidence | record | Produced by the activity it records |
 | [[Rollback-Plan]] | 4 | universal | light |  |
@@ -436,11 +439,11 @@ tier_model: "checklist/release-checklist/release.md — Project Tier Scoping Mat
 | Template | Tier | Applicability | Form | Trigger / Overlap |
 |---|---|---|---|---|
 | [[Impact-Analysis-Report]] | 4 | evidence | record | Produced by the activity it records |
-| [[Incident-Problem-Reports]] | 4 | evidence | record | Produced by the activity it records · ⟷ `incident` → SoT `16_Deployment_and_Operations/Incident-Management-Process.md` |
+| [[Incident-Problem-Reports]] | 4 | evidence | record | Produced by the activity it records · ⟷ view of `Incident-Management-Process` |
 | [[Maintenance-Log-Change-History]] | 4 | universal | light |  |
 | [[Maintenance-Plan]] | 4 | universal | light |  |
 | [[Maintenance-Metrics-Dashboard]] | 5 | evidence | record | Produced by the activity it records |
-| [[Modification-Request]] | 5 | universal | light | ⟷ `change-control` → SoT `19_Configuration_Management/Change-Request.md` |
+| [[Modification-Request]] | 5 | universal | light | ⟷ view of `Change-Request` |
 | [[SLA-Compliance-Report]] | 5 | evidence | record | Produced by the activity it records |
 | [[Technical-Debt-Register]] | 5 | evidence | record | Produced by the activity it records |
 | [[Logistics-Plan]] | 6 | conditional | light | Systems-engineering, safety, formal-assurance, or organization-program context |
@@ -453,7 +456,7 @@ tier_model: "checklist/release-checklist/release.md — Project Tier Scoping Mat
 | [[Review-Records]] | 4 | universal | light |  |
 | [[SQAP]] | 4 | universal | light |  |
 | [[Quality-Metrics-Dashboard]] | 5 | conditional | record | Formal QA program or certification context |
-| [[RCA-Reports]] | 5 | conditional | record | Formal QA program or certification context · ⟷ `incident` → SoT `16_Deployment_and_Operations/Incident-Management-Process.md` |
+| [[RCA-Reports]] | 5 | conditional | record | Formal QA program or certification context · ⟷ view of `Incident-Management-Process` |
 | [[VandV-Plan]] | 5 | universal | light |  |
 | [[Audit-Reports]] | 6 | conditional | record | Systems-engineering, safety, formal-assurance, or organization-program context |
 | [[Process-Assessment-Report]] | 6 | conditional | record | Systems-engineering, safety, formal-assurance, or organization-program context |
@@ -466,7 +469,7 @@ tier_model: "checklist/release-checklist/release.md — Project Tier Scoping Mat
 | Template | Tier | Applicability | Form | Trigger / Overlap |
 |---|---|---|---|---|
 | [[Baseline-Records]] | 4 | universal | light |  |
-| [[Change-Request]] | 4 | universal | light | ⟷ `change-control` → SoT `19_Configuration_Management/Change-Request.md` |
+| [[Change-Request]] | 4 | universal | light |  |
 | [[Configuration-Management-Plan]] | 4 | conditional | light | Formal configuration management / contractual CM required |
 | [[SCMP]] | 4 | universal | light |  |
 | [[Version-Description-Document]] | 4 | universal | light |  |
@@ -516,11 +519,3 @@ tier_model: "checklist/release-checklist/release.md — Project Tier Scoping Mat
 | [[Security-Accreditation-Package]] | 7 | conditional | light | Regulated/domain-specific context (medical, gov/defense, safety) |
 | [[Software-Assurance-Plan]] | 7 | conditional | light | Regulated/domain-specific context (medical, gov/defense, safety) |
 | [[Software-Development-Plan]] | 7 | conditional | light | Regulated/domain-specific context (medical, gov/defense, safety) |
-
-## 23_Project_Size
-
-| Template | Tier | Applicability | Form | Trigger / Overlap |
-|---|---|---|---|---|
-| [[Profile-Medium-Enterprise-Checklist]] | 5 | evidence | record | Produced by the activity it records |
-| [[Profile-Small-Startup-Checklist]] | 5 | evidence | record | Produced by the activity it records |
-| [[Profile-Large-Safety-Critical-Checklist]] | 7 | conditional | record | Systems-engineering, safety, formal-assurance, or organization-program context |

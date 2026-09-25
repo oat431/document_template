@@ -19,6 +19,7 @@ tags: [error-states, error-handling, ux]
 standard_ref:
   - ISO 9241-210 — Human-Centred Design
   - NN/g Error Message Guidelines
+standards_profile: "[ISO/IEC 29110 VSE | ISO/IEC/IEEE 12207 | none]"  # set per project tier: T1-T4 default 29110, T5+ consider 12207, T7 adds domain regs
 ---
 
 # Error State Specifications
